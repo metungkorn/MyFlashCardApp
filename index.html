@@ -429,9 +429,6 @@
         }
     }
 
-    // ==========================================
-    // 🛡️ ระบบจัดการการเข้าถึงและการดึงข้อมูล (Fix F5 Issue)
-    // ==========================================
     auth.onAuthStateChanged(async (user) => {
         const logoutBtn = document.getElementById("logoutBtn");
         const userInfo = document.getElementById("userInfo");
@@ -439,34 +436,28 @@
         const mainAppContent = document.getElementById("main-app-content");
         const loadingScreen = document.getElementById("loadingScreen");
 
+        if (loadingScreen) loadingScreen.style.display = "none";
+
         if (user) {
-            // ✅ เคสที่ 1: ล็อกอินสำเร็จแล้ว
             currentUserUid = user.uid;
-            
-            // แสดงผล UI ส่วนบุคคล
             if(logoutBtn) logoutBtn.style.display = "inline-block";
             if(userInfo) {
                 userInfo.style.display = "inline-block";
-                userInfo.innerText = "👤 " + user.displayName;
+                userInfo.innerText = "เข้าสู่ระบบในชื่อ: " + user.displayName;
             }
             
-            // สลับหน้าจอจาก Login -> Main App
             if(loginPrompt) loginPrompt.style.display = "none";
             if(mainAppContent) mainAppContent.style.display = "block";
-            if(loadingScreen) loadingScreen.style.display = "none";
 
-            // 🚀 หัวใจสำคัญ: เรียกโหลดข้อมูลเมื่อ "มีสิทธิ์" แล้วเท่านั้น
-            console.log("🔐 สิทธิ์การเข้าถึงถูกต้อง: กำลังเริ่มดึงข้อมูล...");
-            await loadData(user.uid); 
-            
+            await loadData(user.uid);
         } else {
-            // ❌ เคสที่ 2: ยังไม่ได้ล็อกอิน
             currentUserUid = null;
-            if(loadingScreen) loadingScreen.style.display = "none";
+            if(logoutBtn) logoutBtn.style.display = "none";
+            if(userInfo) userInfo.style.display = "none";
+            
             if(loginPrompt) loginPrompt.style.display = "flex";
             if(mainAppContent) mainAppContent.style.display = "none";
             
-            // ล้างข้อมูลเก่าเพื่อความปลอดภัย
             folders = [];
             tags = [];
             render();
