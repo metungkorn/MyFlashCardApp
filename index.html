@@ -47,179 +47,189 @@
 <div id="app-container">
     <div id="auth-controls" style="position: fixed; top: 12px; right: 15px; z-index: 1001; display: flex; align-items: center; gap: 10px;">
         <span id="userInfo" style="font-size: 14px; font-weight: bold; color: #6366f1; background: white; padding: 5px 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: none;"></span>
-        <button id="loginBtn" onclick="login()" style="background: #4285F4; color: white; margin: 0; padding: 8px 15px;">🔑 เข้าสู่ระบบด้วย Google</button>
         <button id="logoutBtn" onclick="logout()" style="background: #ea4335; color: white; margin: 0; padding: 8px 15px; display: none;">🚪 ออกจากระบบ</button>
     </div>
 
-    <div id="menuBtn" onclick="toggleSidebar()">☰</div>
-    <div id="overlay" onclick="toggleSidebar()"></div>
-    <div id="sidebar">
-        <h3 style="padding-left:20px; color:#6366f1;">📚 Flashcard Menu</h3>
-        <div class="menuItem" onclick="goToHome()">🏠 หน้าแรก</div>
-        <div class="menuItem" onclick="openSearchPage()">🔍 ค้นหาขั้นสูง</div>
-        <div class="menuItem" onclick="openCalendar()">📅 ปฏิทิน</div>
-        <div class="menuItem" onclick="openTagManager()">🏷️ จัดการแท็ก</div>
-    </div>
-
-    <div id="homePage">
-        <h1>📚 Flashcard (Ultimate)</h1>
-        
-        <section>
-            <h3>📂 โฟลเดอร์</h3>
-            <div style="display: flex; gap: 5px; flex-wrap: wrap;">
-                <input id="folderName" placeholder="ชื่อโฟลเดอร์ใหม่" style="flex-grow: 1;">
-                <button onclick="addFolder()" style="background:#4CAF50; color:white;">สร้างโฟลเดอร์</button>
-            </div>
-            <div id="folders" style="margin-top: 10px;"></div>
-        </section>
-
-        <hr>
-        <h3 id="currentFolder" style="color: #6366f1;">กรุณาเลือกหรือสร้างโฟลเดอร์</h3>
-
-        <div style="background:#fff; padding:20px; border-radius:15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-            <strong style="font-size: 18px;">➕ เพิ่มการ์ดใหม่</strong><br><br>
-            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                <input id="front" placeholder="คำศัพท์ (ด้านหน้า)" style="width:50%">
-                <input id="back" placeholder="ความหมาย (ด้านหลัง)" style="width:50%">
-            </div>
-            <div class="tag-selector-container">
-                <div class="tag-controls">
-                    <strong>ติดแท็ก:</strong>
-                    <button onclick="selectAllTags('multiTagInput')">✅ ทั้งหมด</button>
-                    <button onclick="deselectAllTags('multiTagInput')">❌ ยกเลิก</button>
-                </div>
-                <div id="multiTagInput"></div>
-            </div>
-            <button onclick="addCard()" style="background:#2196F3; color:white; width: 100%; padding: 15px; font-size: 16px;">เพิ่มการ์ดลงโฟลเดอร์ (Cloud)</button>
-        </div>
-
-        <div style="background:#eef2ff; padding:20px; border-radius:15px; margin-top: 20px;">
-            <strong>🏷️ สร้างแท็กใหม่ & ระบบเงื่อนไข</strong><br>
-            <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px;">
-                <input id="tagName" placeholder="ชื่อแท็ก" style="width: 150px;">
-                <input id="tagInterval" type="number" placeholder="วันทบทวน" style="width: 100px;">
-                <select id="tagPromote" title="เมื่อทำสำเร็จ"></select>
-                <select id="tagDemote" title="เมื่อลืม"></select>
-                <input type="color" id="tagColor" value="#ffe4b5" style="width: 50px; height: 45px; padding: 2px;">
-                <button onclick="createTag()" style="background:#6366f1; color:white;">✨ สร้างแท็ก</button>
-            </div>
-            <div id="tagList" style="margin-top:15px; display: flex; flex-wrap: wrap;"></div>
-        </div>
-
-        <hr>
-        <section>
-            <h3>📥 นำเข้าแบบรวดเร็ว (Bulk Import)</h3>
-            <textarea id="bulk" rows="4" style="width:100%; border-radius:10px;" placeholder="คำศัพท์ = ความหมาย (หนึ่งบรรทัดต่อหนึ่งใบ)"></textarea>
-            <div style="background: #eee; padding: 15px; border-radius: 15px; margin-top: 10px; text-align: left;">
-                <span>คั่นกลาง:</span> <select id="sepTerm"><option value="=">=</option><option value="tab">Tab</option><option value="custom">Custom</option></select>
-                <input id="customSepTerm" placeholder="ตัวคั่น" style="width:70px; display:none;">
-                <span style="margin-left: 10px;">คั่นใบ:</span> <select id="sepCard"><option value="newline">บรรทัดใหม่</option><option value="custom">Custom</option></select>
-                <input id="customSepCard" placeholder="ตัวคั่น" style="width:70px; display:none;">
-                <button onclick="importCards()" style="background:#ff9800; color:white; margin-left: 10px;">📥 เริ่มนำเข้า</button>
-            </div>
-        </section>
-
-        <hr>
-        <div style="text-align: center; margin-bottom: 20px;">
-            <button onclick="startPlayFromHome()" style="background:#10b981; color:white; padding:15px 30px; border-radius:15px; font-size:18px; box-shadow:0 4px 10px rgba(16,185,129,0.3);">▶️ เริ่มเรียนโฟลเดอร์นี้</button>
-            <button onclick="viewCards()" style="background:#6366f1; color:white;">📋 ดูรายการการ์ด</button>
-            <button onclick="toggleShuffle()" id="shuffleBtn" style="background:#eee; color:#444;">🔀 สุ่ม: ปิด</button>
-        </div>
-    </div>
-
-    <div id="list"></div>
-
-    <div id="searchPage" style="display:none; padding-bottom:100px;">
-      <div id="playSearchBtnContainer" style="display:none; margin-bottom: 15px;">
-        <button onclick="startPlaySearch()" style="width:100%; background:#10b981; color:white; padding:15px; border-radius:15px; border:none; cursor:pointer; font-weight:bold; font-size:18px;">
-            ▶️ เริ่มเรียน (เฉพาะใบในหน้านี้)
+    <div id="loginPrompt" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh; text-align: center;">
+        <div style="font-size: 80px; margin-bottom: 10px;">🔒</div>
+        <h1 style="color: #1e293b; margin-bottom: 5px;">Flashcard (Ultimate)</h1>
+        <p style="color: #64748b; font-size: 16px; margin-bottom: 30px;">คุณจำเป็นต้องเข้าสู่ระบบผ่านบัญชี Google ก่อนเริ่มใช้งาน</p>
+        <button onclick="login()" style="background: #4285F4; color: white; padding: 15px 35px; font-size: 18px; border-radius: 12px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(66, 133, 244, 0.4); transition: 0.3s;">
+            🔑 เข้าสู่ระบบด้วย Google
         </button>
-      </div>
-    
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2 style="color:#1e293b; margin:0;">🔍 ค้นหาขั้นสูง</h2>
-         <button onclick="goToHome()" style="background: #64748b; color: white; padding: 8px 15px; border-radius: 8px; border:none;">❌ ปิด</button>
-     </div>
+    </div>
 
-     <div style="background:white; padding:20px; border-radius:15px; box-shadow:0 4px 12px rgba(0,0,0,0.05); margin-bottom:20px;">
-        <input id="advSearchInput" oninput="executeAdvancedSearch()" placeholder="ค้นหาคำศัพท์..." style="width:100%; box-sizing:border-box; margin-bottom:15px; font-size:18px; padding:12px; border-radius:10px; border:2px solid #e2e8f0;">
+    <div id="main-app-content" style="display: none;">
         
-        <select id="advFolderFilter" onchange="executeAdvancedSearch()" style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid #cbd5e1;">
-            <option value="all">-- ค้นหาทุกโฟลเดอร์ --</option>
-        </select>
-
-        <div id="searchTagFilters" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px;"></div>
-      </div>
-
-     <div id="searchBulkControls" style="margin-bottom:15px; gap:10px; display: flex;">
-        <button onclick="selectAllSearchCards(true)" style="background:#6366f1; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:14px;">✅ เลือกทั้งหมดในหน้านี้</button>
-         <button onclick="selectAllSearchCards(false)" style="background:#cbd5e1; color:#1e293b; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:14px;">🔄 ยกเลิกการเลือก</button>
-     </div>
-
-     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-        <div id="searchResultsCount" style="font-weight: bold; color: #1e293b;"></div>
-        <select id="itemsPerPageSelect" onchange="changeItemsPerPage()" style="padding:5px 10px; border-radius:8px; border:1px solid #cbd5e1;">
-            <option value="10">10 ใบ</option>
-            <option value="20" selected>20 ใบ</option>
-            <option value="50">50 ใบ</option>
-            <option value="all">ทั้งหมด</option>
-        </select>
-     </div>
-
-     <div id="advSearchResult"></div>
-     <div id="searchPagination" style="display:flex; justify-content:center; gap:8px; margin-top:25px; flex-wrap:wrap;"></div>
-
-     <div id="searchBulkActionOuter" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); width:90%; max-width:700px; background:#1e293b; color:white; padding:15px; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.3); z-index:2000;">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-            <span id="searchSelectedCount">เลือกแล้ว 0 ใบ</span>
-            <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                <button onclick="copyFormattedExport()" style="background:#8b5cf6; border:none; color:white; padding:8px 12px; border-radius:8px; cursor:pointer;">📋 ส่งออก (A=B*)</button>
-                <button onclick="openBulkTagModal()" style="background:#10b981; border:none; color:white; padding:8px 12px; border-radius:8px; cursor:pointer;">🏷️ จัดการแท็ก</button>
-                <button onclick="deleteSelectedFromSearch()" style="background:#ef4444; border:none; color:white; padding:8px 12px; border-radius:8px; cursor:pointer;">🗑️ ลบที่เลือก</button>
-            </div>
+        <div id="menuBtn" onclick="toggleSidebar()">☰</div>
+        <div id="overlay" onclick="toggleSidebar()"></div>
+        <div id="sidebar">
+            <h3 style="padding-left:20px; color:#6366f1;">📚 Flashcard Menu</h3>
+            <div class="menuItem" onclick="goToHome()">🏠 หน้าแรก</div>
+            <div class="menuItem" onclick="openSearchPage()">🔍 ค้นหาขั้นสูง</div>
+            <div class="menuItem" onclick="openCalendar()">📅 ปฏิทิน</div>
+            <div class="menuItem" onclick="openTagManager()">🏷️ จัดการแท็ก</div>
         </div>
-     </div>
-    </div>
 
-    <div id="tagManagerPage" style="display:none; padding-bottom:80px;">
-        <h2 style="color:#1e293b;">🏷️ ตั้งค่าเงื่อนไขแท็ก</h2>
-        <p style="color:#64748b; font-size:13px; margin-bottom:15px;">กำหนดการเปลี่ยนแท็กอัตโนมัติเมื่อทบทวนเสร็จ หรือเมื่อลืมทบทวน</p>
-        <div id="tagEditorList"></div>
-        <button onclick="goToHome()" style="margin-top:20px; width:100%; background:#64748b; color:white; padding:12px; border-radius:10px; border:none; cursor:pointer; font-weight:bold;">⬅️ ปิดหน้าจัดการแท็ก</button>
-    </div>
-
-    <div id="calendarPage" style="display:none; padding-bottom:50px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <button onclick="prevMonth()" style="background:#eee; padding:10px 15px;">◀</button>
-            <span id="monthTitle" style="font-weight:bold;font-size:20px;"></span>
-            <button onclick="nextMonth()" style="background:#eee; padding:10px 15px;">▶</button>
-        </div>
-        <div id="calendarGrid"></div>
-        <button onclick="goToHome()" style="margin-top:20px; width:100%; background:#64748b; color:white; padding:12px; border-radius:10px; border:none; cursor:pointer; font-weight:bold;">⬅️ ปิดหน้าปฏิทิน</button>
-    </div>
-
-    <div id="calendarModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; justify-content:center; align-items:center;">
-        <div style="background:white; width:90%; max-width:500px; border-radius:20px; padding:20px; max-height:80vh; overflow-y:auto; position:relative;">
-            <h3 id="modalDateTitle" style="margin-top:0; color:#6366f1;">📅 รายการทบทวน</h3>
-            <div id="modalCardList"></div>
-            <button onclick="closeModal()" style="width:100%; background:#64748b; color:white; margin-top:15px; padding:12px; border-radius:10px; border:none; cursor:pointer;">ปิดหน้าต่าง</button>
-        </div>
-    </div>
-
-    <div id="bulkTagModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:3000; justify-content:center; align-items:center;">
-        <div style="background:white; width:90%; max-width:400px; border-radius:20px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
-            <h3 style="margin-top:0; color:#1e293b;">🏷️ เลือกแท็กที่ต้องการเพิ่ม</h3>
-            <p style="font-size:12px; color:#64748b; margin-bottom:10px;">สามารถเลือกได้หลายแท็กพร้อมกัน</p>
-            <div id="bulkTagCheckboxes" style="max-height:250px; overflow-y:auto; margin-bottom:15px; display:flex; flex-direction:column; gap:8px; text-align:left;">
+        <div id="homePage">
+            <h1>📚 Flashcard (Ultimate)</h1>
+            
+            <section>
+                <h3>📂 โฟลเดอร์</h3>
+                <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                    <input id="folderName" placeholder="ชื่อโฟลเดอร์ใหม่" style="flex-grow: 1;">
+                    <button onclick="addFolder()" style="background:#4CAF50; color:white;">สร้างโฟลเดอร์</button>
                 </div>
-            <div style="display:flex; gap:10px;">
-                <button onclick="applyBulkTags()" style="flex-grow:1; background:#10b981; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold;">✅ ยืนยันเพิ่มแท็ก</button>
-                <button onclick="closeBulkTagModal()" style="background:#ef4444; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold;">❌ ยกเลิก</button>
+                <div id="folders" style="margin-top: 10px;"></div>
+            </section>
+
+            <hr>
+            <h3 id="currentFolder" style="color: #6366f1;">กรุณาเลือกหรือสร้างโฟลเดอร์</h3>
+
+            <div style="background:#fff; padding:20px; border-radius:15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                <strong style="font-size: 18px;">➕ เพิ่มการ์ดใหม่</strong><br><br>
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <input id="front" placeholder="คำศัพท์ (ด้านหน้า)" style="width:50%">
+                    <input id="back" placeholder="ความหมาย (ด้านหลัง)" style="width:50%">
+                </div>
+                <div class="tag-selector-container">
+                    <div class="tag-controls">
+                        <strong>ติดแท็ก:</strong>
+                        <button onclick="selectAllTags('multiTagInput')">✅ ทั้งหมด</button>
+                        <button onclick="deselectAllTags('multiTagInput')">❌ ยกเลิก</button>
+                    </div>
+                    <div id="multiTagInput"></div>
+                </div>
+                <button onclick="addCard()" style="background:#2196F3; color:white; width: 100%; padding: 15px; font-size: 16px;">เพิ่มการ์ดลงโฟลเดอร์ (Cloud)</button>
+            </div>
+
+            <div style="background:#eef2ff; padding:20px; border-radius:15px; margin-top: 20px;">
+                <strong>🏷️ สร้างแท็กใหม่ & ระบบเงื่อนไข</strong><br>
+                <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px;">
+                    <input id="tagName" placeholder="ชื่อแท็ก" style="width: 150px;">
+                    <input id="tagInterval" type="number" placeholder="วันทบทวน" style="width: 100px;">
+                    <select id="tagPromote" title="เมื่อทำสำเร็จ"></select>
+                    <select id="tagDemote" title="เมื่อลืม"></select>
+                    <input type="color" id="tagColor" value="#ffe4b5" style="width: 50px; height: 45px; padding: 2px;">
+                    <button onclick="createTag()" style="background:#6366f1; color:white;">✨ สร้างแท็ก</button>
+                </div>
+                <div id="tagList" style="margin-top:15px; display: flex; flex-wrap: wrap;"></div>
+            </div>
+
+            <hr>
+            <section>
+                <h3>📥 นำเข้าแบบรวดเร็ว (Bulk Import)</h3>
+                <textarea id="bulk" rows="4" style="width:100%; border-radius:10px;" placeholder="คำศัพท์ = ความหมาย (หนึ่งบรรทัดต่อหนึ่งใบ)"></textarea>
+                <div style="background: #eee; padding: 15px; border-radius: 15px; margin-top: 10px; text-align: left;">
+                    <span>คั่นกลาง:</span> <select id="sepTerm"><option value="=">=</option><option value="tab">Tab</option><option value="custom">Custom</option></select>
+                    <input id="customSepTerm" placeholder="ตัวคั่น" style="width:70px; display:none;">
+                    <span style="margin-left: 10px;">คั่นใบ:</span> <select id="sepCard"><option value="newline">บรรทัดใหม่</option><option value="custom">Custom</option></select>
+                    <input id="customSepCard" placeholder="ตัวคั่น" style="width:70px; display:none;">
+                    <button onclick="importCards()" style="background:#ff9800; color:white; margin-left: 10px;">📥 เริ่มนำเข้า</button>
+                </div>
+            </section>
+
+            <hr>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <button onclick="startPlayFromHome()" style="background:#10b981; color:white; padding:15px 30px; border-radius:15px; font-size:18px; box-shadow:0 4px 10px rgba(16,185,129,0.3);">▶️ เริ่มเรียนโฟลเดอร์นี้</button>
+                <button onclick="viewCards()" style="background:#6366f1; color:white;">📋 ดูรายการการ์ด</button>
+                <button onclick="toggleShuffle()" id="shuffleBtn" style="background:#eee; color:#444;">🔀 สุ่ม: ปิด</button>
             </div>
         </div>
-    </div>
 
-</div>
+        <div id="list"></div>
+
+        <div id="searchPage" style="display:none; padding-bottom:100px;">
+        <div id="playSearchBtnContainer" style="display:none; margin-bottom: 15px;">
+            <button onclick="startPlaySearch()" style="width:100%; background:#10b981; color:white; padding:15px; border-radius:15px; border:none; cursor:pointer; font-weight:bold; font-size:18px;">
+                ▶️ เริ่มเรียน (เฉพาะใบในหน้านี้)
+            </button>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="color:#1e293b; margin:0;">🔍 ค้นหาขั้นสูง</h2>
+            <button onclick="goToHome()" style="background: #64748b; color: white; padding: 8px 15px; border-radius: 8px; border:none;">❌ ปิด</button>
+        </div>
+
+        <div style="background:white; padding:20px; border-radius:15px; box-shadow:0 4px 12px rgba(0,0,0,0.05); margin-bottom:20px;">
+            <input id="advSearchInput" oninput="executeAdvancedSearch()" placeholder="ค้นหาคำศัพท์..." style="width:100%; box-sizing:border-box; margin-bottom:15px; font-size:18px; padding:12px; border-radius:10px; border:2px solid #e2e8f0;">
+            
+            <select id="advFolderFilter" onchange="executeAdvancedSearch()" style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid #cbd5e1;">
+                <option value="all">-- ค้นหาทุกโฟลเดอร์ --</option>
+            </select>
+
+            <div id="searchTagFilters" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px;"></div>
+        </div>
+
+        <div id="searchBulkControls" style="margin-bottom:15px; gap:10px; display: flex;">
+            <button onclick="selectAllSearchCards(true)" style="background:#6366f1; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:14px;">✅ เลือกทั้งหมดในหน้านี้</button>
+            <button onclick="selectAllSearchCards(false)" style="background:#cbd5e1; color:#1e293b; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:14px;">🔄 ยกเลิกการเลือก</button>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <div id="searchResultsCount" style="font-weight: bold; color: #1e293b;"></div>
+            <select id="itemsPerPageSelect" onchange="changeItemsPerPage()" style="padding:5px 10px; border-radius:8px; border:1px solid #cbd5e1;">
+                <option value="10">10 ใบ</option>
+                <option value="20" selected>20 ใบ</option>
+                <option value="50">50 ใบ</option>
+                <option value="all">ทั้งหมด</option>
+            </select>
+        </div>
+
+        <div id="advSearchResult"></div>
+        <div id="searchPagination" style="display:flex; justify-content:center; gap:8px; margin-top:25px; flex-wrap:wrap;"></div>
+
+        <div id="searchBulkActionOuter" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); width:90%; max-width:700px; background:#1e293b; color:white; padding:15px; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.3); z-index:2000;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <span id="searchSelectedCount">เลือกแล้ว 0 ใบ</span>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <button onclick="copyFormattedExport()" style="background:#8b5cf6; border:none; color:white; padding:8px 12px; border-radius:8px; cursor:pointer;">📋 ส่งออก (A=B*)</button>
+                    <button onclick="openBulkTagModal()" style="background:#10b981; border:none; color:white; padding:8px 12px; border-radius:8px; cursor:pointer;">🏷️ จัดการแท็ก</button>
+                    <button onclick="deleteSelectedFromSearch()" style="background:#ef4444; border:none; color:white; padding:8px 12px; border-radius:8px; cursor:pointer;">🗑️ ลบที่เลือก</button>
+                </div>
+            </div>
+        </div>
+        </div>
+
+        <div id="tagManagerPage" style="display:none; padding-bottom:80px;">
+            <h2 style="color:#1e293b;">🏷️ ตั้งค่าเงื่อนไขแท็ก</h2>
+            <p style="color:#64748b; font-size:13px; margin-bottom:15px;">กำหนดการเปลี่ยนแท็กอัตโนมัติเมื่อทบทวนเสร็จ หรือเมื่อลืมทบทวน</p>
+            <div id="tagEditorList"></div>
+            <button onclick="goToHome()" style="margin-top:20px; width:100%; background:#64748b; color:white; padding:12px; border-radius:10px; border:none; cursor:pointer; font-weight:bold;">⬅️ ปิดหน้าจัดการแท็ก</button>
+        </div>
+
+        <div id="calendarPage" style="display:none; padding-bottom:50px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <button onclick="prevMonth()" style="background:#eee; padding:10px 15px;">◀</button>
+                <span id="monthTitle" style="font-weight:bold;font-size:20px;"></span>
+                <button onclick="nextMonth()" style="background:#eee; padding:10px 15px;">▶</button>
+            </div>
+            <div id="calendarGrid"></div>
+            <button onclick="goToHome()" style="margin-top:20px; width:100%; background:#64748b; color:white; padding:12px; border-radius:10px; border:none; cursor:pointer; font-weight:bold;">⬅️ ปิดหน้าปฏิทิน</button>
+        </div>
+
+        <div id="calendarModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; justify-content:center; align-items:center;">
+            <div style="background:white; width:90%; max-width:500px; border-radius:20px; padding:20px; max-height:80vh; overflow-y:auto; position:relative;">
+                <h3 id="modalDateTitle" style="margin-top:0; color:#6366f1;">📅 รายการทบทวน</h3>
+                <div id="modalCardList"></div>
+                <button onclick="closeModal()" style="width:100%; background:#64748b; color:white; margin-top:15px; padding:12px; border-radius:10px; border:none; cursor:pointer;">ปิดหน้าต่าง</button>
+            </div>
+        </div>
+
+        <div id="bulkTagModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:3000; justify-content:center; align-items:center;">
+            <div style="background:white; width:90%; max-width:400px; border-radius:20px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+                <h3 style="margin-top:0; color:#1e293b;">🏷️ เลือกแท็กที่ต้องการเพิ่ม</h3>
+                <p style="font-size:12px; color:#64748b; margin-bottom:10px;">สามารถเลือกได้หลายแท็กพร้อมกัน</p>
+                <div id="bulkTagCheckboxes" style="max-height:250px; overflow-y:auto; margin-bottom:15px; display:flex; flex-direction:column; gap:8px; text-align:left;">
+                    </div>
+                <div style="display:flex; gap:10px;">
+                    <button onclick="applyBulkTags()" style="flex-grow:1; background:#10b981; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold;">✅ ยืนยันเพิ่มแท็ก</button>
+                    <button onclick="closeBulkTagModal()" style="background:#ef4444; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold;">❌ ยกเลิก</button>
+                </div>
+            </div>
+        </div>
+
+    </div> </div>
 
 <script>
     // ==========================================
@@ -240,7 +250,6 @@
     const db = firebase.firestore();
     let currentUserUid = null;
 
-    // 1. ใช้ Redirect แก้ปัญหา iPad และมือถือบล็อกป๊อปอัป
     function login() {
         const provider = new firebase.auth.GoogleAuthProvider();
         auth.signInWithRedirect(provider).catch(e => alert("Login Error: " + e.message));
@@ -250,17 +259,14 @@
         auth.signOut().then(() => location.reload());
     }
 
-    // 2. ฟังก์ชันโหลดข้อมูลอัจฉริยะ (กันข้อมูลหาย + ดันข้อมูลขึ้น Cloud)
     async function loadData(uid) {
         try {
             const docRef = db.collection("users").doc(uid);
             const docSnap = await docRef.get();
             
-            // ดึงข้อมูลในเครื่อง (Local) ก่อน เผื่อว่ามีข้อมูลที่ยังไม่ได้ขึ้น Cloud
             let localFolders = JSON.parse(localStorage.getItem("folders")) || [];
             let localTags = JSON.parse(localStorage.getItem("tags")) || [];
 
-            // ตรวจสอบว่าใน Cloud มีข้อมูลหรือไม่
             let cloudHasData = false;
             if (docSnap.exists) {
                 let data = docSnap.data();
@@ -270,17 +276,14 @@
             }
 
             if (!cloudHasData && localFolders.length > 0) {
-                // กรณีที่ 1: ล็อกอินครั้งแรก (Cloud ว่าง) แต่ในเครื่องมีข้อมูล
                 console.log("☁️ นำข้อมูลจากเครื่อง ดันขึ้น Cloud อัตโนมัติ!");
                 folders = localFolders;
                 tags = localTags;
-                // บังคับเซฟขึ้น Cloud เพื่อไม่ให้ข้อมูลหาย
                 db.collection("users").doc(uid).set({
                     folders: folders,
                     tags: tags
                 }, { merge: true });
             } else if (cloudHasData) {
-                // กรณีที่ 2: ใน Cloud มีข้อมูลอยู่แล้ว ให้ดึงมาแสดงผลและทับในเครื่อง
                 console.log("✅ โหลดข้อมูลจาก Cloud สำเร็จ!");
                 let data = docSnap.data();
                 folders = data.folders || [];
@@ -288,7 +291,6 @@
                 localStorage.setItem("folders", JSON.stringify(folders));
                 localStorage.setItem("tags", JSON.stringify(tags));
             } else {
-                // กรณีที่ 3: ผู้ใช้ใหม่เอี่ยม ไม่มีข้อมูลทั้งคู่
                 folders = [];
                 tags = [];
             }
@@ -296,21 +298,19 @@
             render();
             renderTagInputs();
             
-            // 3. 🔥 เปิดระบบ Real-time Sync (ซิงค์ข้ามอุปกรณ์ทันที)
+            // เปิดระบบ Real-time Sync
             docRef.onSnapshot((doc) => {
                 if (doc.exists) {
                     let data = doc.data();
                     let newFolders = data.folders || [];
                     let newTags = data.tags || [];
                     
-                    // ถ้าระบบจับได้ว่าข้อมูลใน Cloud มีการเปลี่ยนแปลง (เช่น พิมพ์จากอีกเครื่อง)
                     if (JSON.stringify(newFolders) !== JSON.stringify(folders)) {
                         folders = newFolders;
                         tags = newTags;
                         localStorage.setItem("folders", JSON.stringify(folders));
                         localStorage.setItem("tags", JSON.stringify(tags));
                         
-                        // อัปเดตหน้าจอทันที (ถ้าไม่ได้อยู่ในโหมดกำลังเล่นการ์ด)
                         if (!playing) { 
                             render();
                             renderTagInputs();
@@ -326,30 +326,40 @@
         }
     }
 
-    // ตัวเช็คสถานะล็อกอิน
+    // ตัวเช็คสถานะล็อกอิน และควบคุมการเปิด/ปิด หน้าต่างแอปหลัก
     auth.onAuthStateChanged(async (user) => {
-        const loginBtn = document.getElementById("loginBtn");
         const logoutBtn = document.getElementById("logoutBtn");
         const userInfo = document.getElementById("userInfo");
+        const loginPrompt = document.getElementById("loginPrompt");
+        const mainAppContent = document.getElementById("main-app-content");
 
         if (user) {
+            // ล็อกอินแล้ว
             currentUserUid = user.uid;
-            if(loginBtn) loginBtn.style.display = "none";
             if(logoutBtn) logoutBtn.style.display = "inline-block";
             if(userInfo) {
                 userInfo.style.display = "inline-block";
                 userInfo.innerText = "เข้าสู่ระบบในชื่อ: " + user.displayName;
             }
+            
+            // ซ่อนหน้าต่างล็อกอิน และโชว์ตัวแอปทั้งหมด 🔓
+            if(loginPrompt) loginPrompt.style.display = "none";
+            if(mainAppContent) mainAppContent.style.display = "block";
+
             await loadData(user.uid);
         } else {
+            // ยังไม่ได้ล็อกอิน
             currentUserUid = null;
-            if(loginBtn) loginBtn.style.display = "inline-block";
             if(logoutBtn) logoutBtn.style.display = "none";
             if(userInfo) userInfo.style.display = "none";
             
-            // ถ้าออกจากระบบ ก็ยังโชว์ข้อมูลในเครื่องอยู่ (ป้องกันความตกใจว่าข้อมูลหาย)
-            folders = JSON.parse(localStorage.getItem("folders")) || [];
-            tags = JSON.parse(localStorage.getItem("tags")) || [];
+            // โชว์หน้าต่างล็อกอิน และซ่อนตัวแอปทั้งหมด 🔒
+            if(loginPrompt) loginPrompt.style.display = "flex";
+            if(mainAppContent) mainAppContent.style.display = "none";
+            
+            // ล้างข้อมูลหน้าจอออก (เผื่อกันเหนียวไม่ให้ใครเข้าถึงข้อมูลได้)
+            folders = [];
+            tags = [];
             render();
         }
     });
