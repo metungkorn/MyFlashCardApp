@@ -1443,8 +1443,13 @@
     function prevMonth(){ calDate.setMonth(calDate.getMonth()-1); renderCalendar(); }
 
     window.onload = () => {
-        processOverdueCards(); // สั่งทำงานออโต้เมื่อเปิดเว็บ
-        render();
+        // ห้ามใส่ loadData() ตรงนี้เด็ดขาด!
+        // ให้มันรอคำสั่งจาก auth.onAuthStateChanged แทน
+        
+        console.log("📱 แอปพร้อมทำงาน: รอการยืนยันตัวตน...");
+        
+        // ฟังก์ชันเสริมอื่นๆ ที่ไม่เกี่ยวกับฐานข้อมูลเรียกได้ปกติ
+        if (typeof renderCalendar === "function") renderCalendar();
     };
 </script>
 </body>
