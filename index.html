@@ -110,9 +110,12 @@
 
             <div style="background:#eef2ff; padding:20px; border-radius:15px; margin-top: 20px;">
                 <strong>🏷️ สร้างแท็กใหม่ & ระบบเงื่อนไข</strong><br>
-                <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px;">
+                <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; align-items: center;">
                     <input id="tagName" placeholder="ชื่อแท็ก" style="width: 150px;">
-                    <input id="tagInterval" type="number" placeholder="วันทบทวน" style="width: 100px;">
+                    <input id="tagInterval" type="number" placeholder="วันทบทวน" style="width: 80px;">
+                    
+                    <button onclick="document.getElementById('tagInterval').value = 0" style="background:#3b82f6; color:white; padding:8px 12px; font-size:13px; margin: 5px 0;">📅 ทบทวนวันนี้</button>
+                    
                     <select id="tagPromote" title="เมื่อทำสำเร็จ"></select>
                     <select id="tagDemote" title="เมื่อลืม"></select>
                     <input type="color" id="tagColor" value="#ffe4b5" style="width: 50px; height: 45px; padding: 2px;">
@@ -703,9 +706,13 @@
     function selectAllTags(id) { document.querySelectorAll(`#${id} input`).forEach(cb => cb.checked = true); }
     function deselectAllTags(id) { document.querySelectorAll(`#${id} input`).forEach(cb => cb.checked = false); }
 
+    // อัปเดตฟังก์ชัน createTag ให้รองรับค่า 0 ได้ 
     function createTag() {
         let name = document.getElementById("tagName").value.trim();
-        let interval = parseInt(document.getElementById("tagInterval").value) || 1;
+        
+        let intervalVal = document.getElementById("tagInterval").value;
+        let interval = intervalVal !== "" ? parseInt(intervalVal) : 1; 
+        
         let nextT = document.getElementById("tagPromote").value;
         let failT = document.getElementById("tagDemote").value;
         let color = document.getElementById("tagColor").value;
