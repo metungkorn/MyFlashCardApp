@@ -45,6 +45,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <div id="app-container">
+    
+    <div id="syncStatus" style="display:none; position:fixed; top:15px; left:50%; transform:translateX(-50%); padding:8px 20px; border-radius:20px; font-size:14px; font-weight:bold; box-shadow:0 4px 10px rgba(0,0,0,0.2); z-index:9999; transition:0.3s;">
+    </div>
+
     <div id="auth-controls" style="position: fixed; top: 12px; right: 15px; z-index: 1001; display: flex; align-items: center; gap: 10px;">
         <span id="userInfo" style="font-size: 14px; font-weight: bold; color: #6366f1; background: white; padding: 5px 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: none;"></span>
         <button id="logoutBtn" onclick="logout()" style="background: #ea4335; color: white; margin: 0; padding: 8px 15px; display: none;">🚪 ออกจากระบบ</button>
@@ -241,6 +245,33 @@
 
 <script>
     // ==========================================
+    // 🔥 ระบบแจ้งเตือนสถานะการซิงค์ (UI Status)
+    // ==========================================
+    let syncTimeout;
+    function showSyncStatus(message, type="loading") {
+        const banner = document.getElementById("syncStatus");
+        if (!banner) return;
+        
+        clearTimeout(syncTimeout);
+        banner.style.display = "block";
+        
+        if (type === "loading") {
+            banner.innerHTML = `🔄 ${message}`;
+            banner.style.background = "#eab308"; // สีเหลือง
+            banner.style.color = "#000";
+        } else if (type === "success") {
+            banner.innerHTML = `✅ ${message}`;
+            banner.style.background = "#10b981"; // สีเขียว
+            banner.style.color = "#fff";
+            syncTimeout = setTimeout(() => { banner.style.display = "none"; }, 3000); // หายไปใน 3 วินาที
+        } else if (type === "error") {
+            banner.innerHTML = `❌ ${message}`;
+            banner.style.background = "#ef4444"; // สีแดง
+            banner.style.color = "#fff";
+        }
+    }
+
+    // ==========================================
     // 🔥 FIREBASE INITIALIZATION & AUTHENTICATION 🔥
     // ==========================================
     const firebaseConfig = {
@@ -289,13 +320,15 @@
             localStorage.removeItem("folders");
             localStorage.removeItem("tags");
             localStorage.removeItem("currentFolderIdx");
-            localStorage.removeItem("lastModified"); // ล้างเวลาทิ้งเมื่อออกจากระบบ
+            localStorage.removeItem("lastModified"); 
             location.reload();
         });
     }
 
     async function loadData(uid) {
         try {
+            showSyncStatus("กำลังดึงข้อมูลจาก Cloud...", "loading"); // โชว์สถานะกำลังดึง
+            
             const docRef = db.collection("users").doc(uid);
             const docSnap = await docRef.get();
             
@@ -325,7 +358,6 @@
                 lastModified = localModified || Date.now();
                 save(); 
             } else if (cloudHasData) {
-                // 🌟 ระบบป้องกันข้อมูลหาย: เช็คเวลา ถ้าเครื่องมีข้อมูลใหม่กว่า (เซฟไม่เสร็จ) ให้ดันขึ้น Cloud
                 if (localModified > cloudModified) {
                     console.log("⬆️ ข้อมูลในเครื่องใหม่กว่า! กำลังอัปโหลดส่วนที่ค้างอยู่...");
                     folders = localFolders;
@@ -333,7 +365,6 @@
                     lastModified = localModified;
                     save(); 
                 } else {
-                    // ถ้า Cloud ปกติดี ให้ดึงข้อมูลมาทับในเครื่องตามปกติ
                     console.log("⬇️ โหลดข้อมูลล่าสุดจาก Cloud สำเร็จ!");
                     folders = cloudFolders;
                     tags = cloudTags;
@@ -341,23 +372,27 @@
                     localStorage.setItem("folders", JSON.stringify(folders));
                     localStorage.setItem("tags", JSON.stringify(tags));
                     localStorage.setItem("lastModified", lastModified);
+                    showSyncStatus("ดึงข้อมูลสำเร็จ!", "success"); // โชว์สถานะสำเร็จ
                 }
             } else {
                 folders = [];
                 tags = [];
                 lastModified = Date.now();
+                showSyncStatus("ซิงค์เรียบร้อย", "success");
             }
 
             render();
             renderTagInputs();
             
-            // ระบบ Real-time Sync ที่ไวขึ้นและเช็คผ่าน Timestamp ลดอาการหน่วง
+            // ระบบ Real-time Sync 
             docRef.onSnapshot((doc) => {
                 if (doc.exists) {
                     let data = doc.data();
                     let newCloudModified = data.lastModified || 0;
                     
                     if (newCloudModified > lastModified) {
+                        showSyncStatus("ตรวจพบข้อมูลใหม่ กำลังอัปเดต...", "loading"); // กำลังดาวน์โหลดอัตโนมัติ
+
                         folders = data.folders || [];
                         tags = data.tags || [];
                         lastModified = newCloudModified;
@@ -371,12 +406,15 @@
                             if(current !== -1) viewCards();
                             console.log("🔄 ซิงค์ข้อมูลข้ามอุปกรณ์เรียบร้อย!");
                         }
+                        
+                        showSyncStatus("ซิงค์ข้อมูลตรงกันแล้ว! ✅", "success"); // อัปเดตอัตโนมัติเสร็จสิ้น
                     }
                 }
             });
 
         } catch(e) {
             console.error("Load Error:", e);
+            showSyncStatus("โหลดข้อมูลไม่สำเร็จ", "error");
         }
     }
 
@@ -421,7 +459,7 @@
     let folders = [];
     let tags = [];
     let current = localStorage.getItem("currentFolderIdx") !== null ? parseInt(localStorage.getItem("currentFolderIdx")) : -1;
-    let lastModified = Date.now(); // 🌟 ตัวแปรเก็บเวลา
+    let lastModified = Date.now(); 
     
     let sessionCards = []; 
     let currentIdx = 0;
@@ -445,10 +483,11 @@
         if (current !== -1) localStorage.setItem("currentFolderIdx", current);
 
         if (currentUserUid) {
-            // เช็คขนาดไฟล์คร่าวๆ ก่อนส่งขึ้น Cloud
             let dataString = JSON.stringify({folders: folders, tags: tags});
             let dataSizeMB = (new Blob([dataString]).size) / 1024 / 1024;
             
+            showSyncStatus("กำลังอัปโหลดขึ้น Cloud...", "loading"); // โชว์สถานะกำลังเซฟ
+
             db.collection("users").doc(currentUserUid).set({
                 folders: folders,
                 tags: tags,
@@ -456,11 +495,12 @@
             }, { merge: true })
             .then(() => {
                 console.log("☁️ บันทึกขึ้น Cloud สำเร็จ (" + dataSizeMB.toFixed(2) + " MB)");
+                showSyncStatus("บันทึกขึ้น Cloud แล้ว!", "success"); // โชว์สถานะเซฟเสร็จสิ้น
             })
             .catch(e => {
                 console.error("Cloud Save Error:", e);
-                // ถ้าเผลอนำเข้าข้อมูลเยอะเกิน 1MB มันจะเตือนให้รู้ ไม่ปล่อยให้รอเก้อ
-                alert("❌ เซิร์ฟเวอร์ Firebase ปฏิเสธการบันทึกข้อมูล! อาจเพราะข้อมูลมีขนาดรวมกันใหญ่เกินไป (เกิน 1MB) ข้อมูลจะถูกเก็บไว้แค่ในเครื่องชั่วคราว แนะนำให้แบ่งโฟลเดอร์ให้เล็กลงครับ");
+                showSyncStatus("อัปโหลดล้มเหลว (ไฟล์ใหญ่ไป)", "error"); // โชว์ Error ให้รู้ตัว
+                alert("❌ เซิร์ฟเวอร์ Firebase ปฏิเสธการบันทึกข้อมูล! อาจเพราะข้อมูลมีขนาดรวมกันใหญ่เกินไป (เกิน 1MB) ข้อมูลจะถูกเก็บไว้แค่ในเครื่องชั่วคราว");
             });
         }
     }
@@ -738,13 +778,10 @@
     function selectAllTags(id) { document.querySelectorAll(`#${id} input`).forEach(cb => cb.checked = true); }
     function deselectAllTags(id) { document.querySelectorAll(`#${id} input`).forEach(cb => cb.checked = false); }
 
-    // อัปเดตฟังก์ชัน createTag ให้รองรับค่า 0 ได้ 
     function createTag() {
         let name = document.getElementById("tagName").value.trim();
-        
         let intervalVal = document.getElementById("tagInterval").value;
         let interval = intervalVal !== "" ? parseInt(intervalVal) : 1; 
-        
         let nextT = document.getElementById("tagPromote").value;
         let failT = document.getElementById("tagDemote").value;
         let color = document.getElementById("tagColor").value;
