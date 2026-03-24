@@ -240,27 +240,46 @@
     const db = firebase.firestore();
     let currentUserUid = null;
 
+    // แก้ปุ่ม Login ให้ใช้ Redirect แทน Popup (แก้ปัญหา iPad บล็อกป๊อปอัป)
     function login() {
         const provider = new firebase.auth.GoogleAuthProvider();
-        provider.setCustomParameters({ prompt: 'select_account' });
-        auth.signInWithPopup(provider).catch(e => alert("Login Error: " + e.message));
+        auth.signInWithRedirect(provider).catch(e => alert("Login Error: " + e.message));
     }
 
     function logout() {
         auth.signOut().then(() => location.reload());
     }
 
+    // แก้ระบบโหลดข้อมูล ให้ฉลาดขึ้น (ดันเครื่องขึ้น Cloud ถ้า Cloud ว่าง)
     async function loadData(uid) {
         try {
             const docRef = db.collection("users").doc(uid);
             const docSnap = await docRef.get();
+            
+            let localFolders = JSON.parse(localStorage.getItem("folders")) || [];
+            let localTags = JSON.parse(localStorage.getItem("tags")) || [];
+
             if (docSnap.exists) {
                 let data = docSnap.data();
-                folders = data.folders || [];
-                tags = data.tags || [];
-                console.log("✅ โหลดข้อมูลจาก Cloud สำเร็จ!");
+                let cloudFolders = data.folders || [];
+                let cloudTags = data.tags || [];
+
+                if (cloudFolders.length === 0 && localFolders.length > 0) {
+                    console.log("☁️ นำข้อมูลจากเครื่อง ดันขึ้น Cloud");
+                    folders = localFolders;
+                    tags = localTags;
+                    save(); 
+                } else {
+                    console.log("✅ โหลดข้อมูลจาก Cloud สำเร็จ!");
+                    folders = cloudFolders;
+                    tags = cloudTags;
+                    localStorage.setItem("folders", JSON.stringify(folders));
+                    localStorage.setItem("tags", JSON.stringify(tags));
+                }
             } else {
                 console.log("🌟 ผู้ใช้ใหม่ กำลังสร้างฐานข้อมูลบน Cloud...");
+                folders = localFolders;
+                tags = localTags;
                 save(); 
             }
             render();
@@ -435,14 +454,12 @@
         if (!f || !b) return alert("กรุณากรอกทั้งคำศัพท์และคำแปล");
         
         let selectedTags = Array.from(document.querySelectorAll("#multiTagInput input:checked")).map(cb => cb.value);
-        
-        // ตั้งวันทบทวนใหม่ให้ตรงกับแท็กที่เลือกตั้งแต่ตอนสร้างการ์ด
         let firstTagObj = tags.find(t => t.name === selectedTags[0]);
-        let interval = firstTagObj ? Number(firstTagObj.interval) : 0; // ถ้าไม่เลือกแท็ก = 0 (คือทบทวนวันนี้)
+        let interval = firstTagObj ? Number(firstTagObj.interval) : 0; 
 
         folders[current].cards.push({
             front: f, back: b, tag: selectedTags,
-            due: Date.now() + (interval * 86400000), // อัปเดต Due Date
+            due: Date.now() + (interval * 86400000), 
             show: false, sessionDone: false
         });
         document.getElementById("front").value = ""; document.getElementById("back").value = "";
@@ -568,7 +585,6 @@
         save(); viewCards();
     }
 
-    // อัปเดต Due Date ในแถบ Bulk จัดการหลายใบหน้าหลัก
     function bulkAddTag() {
         let tagName = document.getElementById("bulkTagTarget").value;
         if(!tagName) return alert("กรุณาเลือกแท็กก่อน");
@@ -853,7 +869,6 @@
         }
     }
     
-    // อัปเดต Due Date เมื่อเพิ่มแท็กผ่าน Dropdown
     function addTagToSearchCard(folderName, frontText, selectedTag) {
         if(!selectedTag) return;
         let fIdx = folders.findIndex(f => f.name === folderName);
@@ -874,7 +889,6 @@
         }
     }
 
-    // --- Bulk Action & Export ---
     function selectAllSearchCards(status) {
         document.querySelectorAll('.export-checkbox').forEach(cb => cb.checked = status);
         updateSearchBulkBar();
@@ -934,7 +948,6 @@
         document.getElementById("bulkTagModal").style.display = "none";
     }
 
-    // อัปเดต Due Date เมื่อเพิ่มแท็กแบบ Bulk ในหน้าค้นหา
     function applyBulkTags() {
         let selectedTags = Array.from(document.querySelectorAll('.bulk-tag-checkbox:checked')).map(cb => cb.value);
         if(selectedTags.length === 0) {
@@ -1083,7 +1096,6 @@
         let area = document.getElementById("tagEditorArea"); area.style.display = area.style.display === "none" ? "block" : "none";
     }
     
-    // อัปเดต Due Date เมื่อเปิด/ปิดแท็กตอนกำลังเล่น
     function toggleTagOnCurrentCard(tagName) {
         let card = sessionCards[currentIdx];
         if (!card.tag) card.tag = [];
@@ -1116,7 +1128,7 @@
         let dueDate = new Date(card.due);
         dueDate.setHours(0, 0, 0, 0); 
 
-        // ถ้าทบทวน "ก่อนกำหนด" (กรอบสีฟ้ายังไม่ถึง/ยังไม่ถึงวัน) -> ห้ามเปลี่ยนแท็ก
+        // ห้ามเปลี่ยนแท็กถ้าทบทวนก่อนกำหนด (กรอบสีฟ้ายังไม่ถึง)
         if (dueDate > today) {
             return; 
         }
@@ -1130,14 +1142,14 @@
             if (config) {
                 let targetTag = isSuccess ? config.promoteTo : config.demoteTo;
                 
-                // เปลี่ยนแท็กก็ต่อเมื่อมีการระบุชื่อแท็กปลายทางไว้ (ไม่ให้เปลี่ยนถ้าเป็น "-- ไม่เปลี่ยน --")
                 if (targetTag && targetTag !== "") {
                     card.tag = card.tag.filter(t => t !== tagName);
                     if (!card.tag.includes(targetTag)) card.tag.push(targetTag);
                     
                     let newConfig = tags.find(t => t.name === targetTag);
                     let days = newConfig ? newConfig.interval : 1;
-                    card.due = Date.now() + (days * 86400000); // ตั้งวันทบทวนใหม่
+                    
+                    card.due = today.getTime() + (days * 86400000); // นับล่วงหน้าจากวันนี้เสมอ
                     changed = true;
                 }
             }
@@ -1146,7 +1158,7 @@
         if(changed && realCard) { realCard.tag = card.tag; realCard.due = card.due; }
     }
 
-    // ฟังก์ชันกวาดล้างและลงโทษการ์ดที่เลยกำหนดทบทวนข้ามวัน
+    // ระบบกวาดล้างการ์ดที่ตกค้างในอดีตให้อัปเดตมาที่กรอบสีฟ้าอัตโนมัติ
     function processOverdueCards() {
         let today = new Date();
         today.setHours(0, 0, 0, 0); 
@@ -1160,13 +1172,11 @@
                 let dueDate = new Date(card.due);
                 dueDate.setHours(0, 0, 0, 0);
 
-                // ถ้า "กรอบสีฟ้า" (วันนี้) เดินเลย "วันที่ต้องทบทวน" มาแล้ว
                 if (today > dueDate) {
                     let oldTagStr = JSON.stringify(card.tag);
                     
                     card.tag.forEach(tagName => {
                         let config = tags.find(t => t.name === tagName);
-                        // เปลี่ยนแท็กและห้ามลืมเช็คค่าว่าง
                         if (config && config.demoteTo && config.demoteTo !== "") {
                             let targetTag = config.demoteTo;
                             
@@ -1176,7 +1186,6 @@
                             let newConfig = tags.find(t => t.name === targetTag);
                             let days = newConfig ? newConfig.interval : 0;
                             
-                            // ตั้งวันทบทวนใหม่ โดยนับเดินหน้าจาก "วันนี้"
                             card.due = todayMs + (days * 86400000); 
                         }
                     });
@@ -1188,18 +1197,12 @@
             });
         });
         
-        if (changed) {
-            save(); 
-        }
-    }
-
-    function checkOverdueAutomations() {
-        processOverdueCards();
+        if (changed) save(); 
     }
 
     // 10. CALENDAR 
     function renderCalendar() {
-        processOverdueCards(); // ให้รันกวาดล้างตอนเปิดหน้าปฏิทินเสมอ
+        processOverdueCards(); // สั่งกวาดล้างจุดตกค้างทุกครั้งที่เปิดปฏิทิน
         
         let year = calDate.getFullYear(); let month = calDate.getMonth();
         let firstDay = new Date(year, month, 1).getDay(); let daysInMonth = new Date(year, month+1, 0).getDate();
@@ -1224,7 +1227,7 @@
                 });
             });
 
-            // เช็คและใส่กรอบสีฟ้าให้ "วันนี้"
+            // ตีกรอบไฮไลท์ให้ "วันนี้"
             let isToday = (d === today.getDate() && month === today.getMonth() && year === today.getFullYear());
             let todayStyle = isToday ? 'border: 2px solid #3b82f6; background-color: #eff6ff;' : '';
             
@@ -1263,7 +1266,7 @@
     function prevMonth(){ calDate.setMonth(calDate.getMonth()-1); renderCalendar(); }
 
     window.onload = () => {
-        checkOverdueAutomations();
+        processOverdueCards(); // สั่งทำงานออโต้เมื่อเปิดเว็บ
         render();
     };
 </script>
