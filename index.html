@@ -258,22 +258,18 @@
     const db = firebase.firestore();
     let currentUserUid = null;
 
-    // 🌟 1. ตั้งค่าให้จำการล็อกอินแค่ "ชั่วคราว" (ปิดเว็บ = ต้องล็อกอินใหม่ครั้งหน้าเสมอ)
     auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
 
-    // 🌟 2. ดักจับผลลัพธ์จากการล็อกอินแบบ Redirect (แก้ปัญหาล็อกอินวนลูป)
     auth.getRedirectResult().catch(error => {
         console.error("Redirect Error:", error);
     });
 
-    // 🌟 3. ล็อกอินแบบ "บังคับเลือกบัญชี Google ทุกครั้ง"
     function login() {
         const loadingScreen = document.getElementById("loadingScreen");
-        if (loadingScreen) loadingScreen.style.display = "flex"; // โชว์หน้าโหลดระหว่างรอ
+        if (loadingScreen) loadingScreen.style.display = "flex"; 
 
         const provider = new firebase.auth.GoogleAuthProvider();
         
-        // คำสั่งนี้คือหัวใจสำคัญ: บังคับให้ Google ข้ามคุกกี้เก่า แล้วโชว์หน้าเลือกบัญชีใหม่ทุกครั้ง!
         provider.setCustomParameters({
             prompt: 'select_account'
         });
@@ -293,6 +289,7 @@
             localStorage.removeItem("folders");
             localStorage.removeItem("tags");
             localStorage.removeItem("currentFolderIdx");
+            localStorage.removeItem("lastModified"); // ล้างเวลาทิ้งเมื่อออกจากระบบ
             location.reload();
         });
     }
@@ -304,12 +301,20 @@
             
             let localFolders = JSON.parse(localStorage.getItem("folders")) || [];
             let localTags = JSON.parse(localStorage.getItem("tags")) || [];
+            let localModified = parseInt(localStorage.getItem("lastModified")) || 0;
 
             let cloudHasData = false;
+            let cloudModified = 0;
+            let cloudFolders = [];
+            let cloudTags = [];
+
             if (docSnap.exists) {
                 let data = docSnap.data();
-                if (data.folders && data.folders.length > 0) {
+                if (data.folders) {
                     cloudHasData = true;
+                    cloudFolders = data.folders || [];
+                    cloudTags = data.tags || [];
+                    cloudModified = data.lastModified || 0;
                 }
             }
 
@@ -317,37 +322,48 @@
                 console.log("☁️ นำข้อมูลจากเครื่อง ดันขึ้น Cloud อัตโนมัติ!");
                 folders = localFolders;
                 tags = localTags;
-                db.collection("users").doc(uid).set({
-                    folders: folders,
-                    tags: tags
-                }, { merge: true });
+                lastModified = localModified || Date.now();
+                save(); 
             } else if (cloudHasData) {
-                console.log("✅ โหลดข้อมูลจาก Cloud สำเร็จ!");
-                let data = docSnap.data();
-                folders = data.folders || [];
-                tags = data.tags || [];
-                localStorage.setItem("folders", JSON.stringify(folders));
-                localStorage.setItem("tags", JSON.stringify(tags));
+                // 🌟 ระบบป้องกันข้อมูลหาย: เช็คเวลา ถ้าเครื่องมีข้อมูลใหม่กว่า (เซฟไม่เสร็จ) ให้ดันขึ้น Cloud
+                if (localModified > cloudModified) {
+                    console.log("⬆️ ข้อมูลในเครื่องใหม่กว่า! กำลังอัปโหลดส่วนที่ค้างอยู่...");
+                    folders = localFolders;
+                    tags = localTags;
+                    lastModified = localModified;
+                    save(); 
+                } else {
+                    // ถ้า Cloud ปกติดี ให้ดึงข้อมูลมาทับในเครื่องตามปกติ
+                    console.log("⬇️ โหลดข้อมูลล่าสุดจาก Cloud สำเร็จ!");
+                    folders = cloudFolders;
+                    tags = cloudTags;
+                    lastModified = cloudModified;
+                    localStorage.setItem("folders", JSON.stringify(folders));
+                    localStorage.setItem("tags", JSON.stringify(tags));
+                    localStorage.setItem("lastModified", lastModified);
+                }
             } else {
                 folders = [];
                 tags = [];
+                lastModified = Date.now();
             }
 
             render();
             renderTagInputs();
             
-            // เปิดระบบ Real-time Sync
+            // ระบบ Real-time Sync ที่ไวขึ้นและเช็คผ่าน Timestamp ลดอาการหน่วง
             docRef.onSnapshot((doc) => {
                 if (doc.exists) {
                     let data = doc.data();
-                    let newFolders = data.folders || [];
-                    let newTags = data.tags || [];
+                    let newCloudModified = data.lastModified || 0;
                     
-                    if (JSON.stringify(newFolders) !== JSON.stringify(folders)) {
-                        folders = newFolders;
-                        tags = newTags;
+                    if (newCloudModified > lastModified) {
+                        folders = data.folders || [];
+                        tags = data.tags || [];
+                        lastModified = newCloudModified;
                         localStorage.setItem("folders", JSON.stringify(folders));
                         localStorage.setItem("tags", JSON.stringify(tags));
+                        localStorage.setItem("lastModified", lastModified);
                         
                         if (!playing) { 
                             render();
@@ -405,6 +421,7 @@
     let folders = [];
     let tags = [];
     let current = localStorage.getItem("currentFolderIdx") !== null ? parseInt(localStorage.getItem("currentFolderIdx")) : -1;
+    let lastModified = Date.now(); // 🌟 ตัวแปรเก็บเวลา
     
     let sessionCards = []; 
     let currentIdx = 0;
@@ -421,15 +438,30 @@
     let calDate = new Date();
 
     function save() {
+        lastModified = Date.now(); // อัปเดตเวลาทุกครั้งที่มีการกดเซฟ
+        localStorage.setItem("lastModified", lastModified);
         localStorage.setItem("folders", JSON.stringify(folders));
         localStorage.setItem("tags", JSON.stringify(tags));
         if (current !== -1) localStorage.setItem("currentFolderIdx", current);
 
         if (currentUserUid) {
+            // เช็คขนาดไฟล์คร่าวๆ ก่อนส่งขึ้น Cloud
+            let dataString = JSON.stringify({folders: folders, tags: tags});
+            let dataSizeMB = (new Blob([dataString]).size) / 1024 / 1024;
+            
             db.collection("users").doc(currentUserUid).set({
                 folders: folders,
-                tags: tags
-            }, { merge: true }).catch(e => console.error("Cloud Save Error:", e));
+                tags: tags,
+                lastModified: lastModified
+            }, { merge: true })
+            .then(() => {
+                console.log("☁️ บันทึกขึ้น Cloud สำเร็จ (" + dataSizeMB.toFixed(2) + " MB)");
+            })
+            .catch(e => {
+                console.error("Cloud Save Error:", e);
+                // ถ้าเผลอนำเข้าข้อมูลเยอะเกิน 1MB มันจะเตือนให้รู้ ไม่ปล่อยให้รอเก้อ
+                alert("❌ เซิร์ฟเวอร์ Firebase ปฏิเสธการบันทึกข้อมูล! อาจเพราะข้อมูลมีขนาดรวมกันใหญ่เกินไป (เกิน 1MB) ข้อมูลจะถูกเก็บไว้แค่ในเครื่องชั่วคราว แนะนำให้แบ่งโฟลเดอร์ให้เล็กลงครับ");
+            });
         }
     }
 
