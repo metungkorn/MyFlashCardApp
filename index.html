@@ -50,7 +50,12 @@
         <button id="logoutBtn" onclick="logout()" style="background: #ea4335; color: white; margin: 0; padding: 8px 15px; display: none;">🚪 ออกจากระบบ</button>
     </div>
 
-    <div id="loginPrompt" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh; text-align: center;">
+    <div id="loadingScreen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh; text-align: center;">
+        <div style="font-size: 50px; margin-bottom: 10px;">⏳</div>
+        <h2 style="color: #64748b;">กำลังเชื่อมต่อระบบ...</h2>
+    </div>
+
+    <div id="loginPrompt" style="display: none; flex-direction: column; align-items: center; justify-content: center; height: 80vh; text-align: center;">
         <div style="font-size: 80px; margin-bottom: 10px;">🔒</div>
         <h1 style="color: #1e293b; margin-bottom: 5px;">Flashcard (Ultimate)</h1>
         <p style="color: #64748b; font-size: 16px; margin-bottom: 30px;">คุณจำเป็นต้องเข้าสู่ระบบผ่านบัญชี Google ก่อนเริ่มใช้งาน</p>
@@ -250,13 +255,43 @@
     const db = firebase.firestore();
     let currentUserUid = null;
 
+    // 🌟 1. ตั้งค่าให้จำการล็อกอินแค่ "ชั่วคราว" (ปิดเว็บ = ต้องล็อกอินใหม่ครั้งหน้าเสมอ)
+    auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+
+    // 🌟 2. ดักจับผลลัพธ์จากการล็อกอินแบบ Redirect (แก้ปัญหาล็อกอินวนลูป)
+    auth.getRedirectResult().catch(error => {
+        console.error("Redirect Error:", error);
+    });
+
+    // 🌟 3. ล็อกอินแบบ "บังคับเลือกบัญชี Google ทุกครั้ง"
     function login() {
+        const loadingScreen = document.getElementById("loadingScreen");
+        if (loadingScreen) loadingScreen.style.display = "flex"; // โชว์หน้าโหลดระหว่างรอ
+
         const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithRedirect(provider).catch(e => alert("Login Error: " + e.message));
+        
+        // คำสั่งนี้คือหัวใจสำคัญ: บังคับให้ Google ข้ามคุกกี้เก่า แล้วโชว์หน้าเลือกบัญชีใหม่ทุกครั้ง!
+        provider.setCustomParameters({
+            prompt: 'select_account'
+        });
+
+        auth.signInWithPopup(provider).catch(e => {
+            if (e.code === 'auth/popup-blocked') {
+                auth.signInWithRedirect(provider);
+            } else {
+                if (loadingScreen) loadingScreen.style.display = "none";
+                alert("Login Error: " + e.message);
+            }
+        });
     }
 
     function logout() {
-        auth.signOut().then(() => location.reload());
+        auth.signOut().then(() => {
+            localStorage.removeItem("folders");
+            localStorage.removeItem("tags");
+            localStorage.removeItem("currentFolderIdx");
+            location.reload();
+        });
     }
 
     async function loadData(uid) {
@@ -326,15 +361,16 @@
         }
     }
 
-    // ตัวเช็คสถานะล็อกอิน และควบคุมการเปิด/ปิด หน้าต่างแอปหลัก
     auth.onAuthStateChanged(async (user) => {
         const logoutBtn = document.getElementById("logoutBtn");
         const userInfo = document.getElementById("userInfo");
         const loginPrompt = document.getElementById("loginPrompt");
         const mainAppContent = document.getElementById("main-app-content");
+        const loadingScreen = document.getElementById("loadingScreen");
+
+        if (loadingScreen) loadingScreen.style.display = "none";
 
         if (user) {
-            // ล็อกอินแล้ว
             currentUserUid = user.uid;
             if(logoutBtn) logoutBtn.style.display = "inline-block";
             if(userInfo) {
@@ -342,22 +378,18 @@
                 userInfo.innerText = "เข้าสู่ระบบในชื่อ: " + user.displayName;
             }
             
-            // ซ่อนหน้าต่างล็อกอิน และโชว์ตัวแอปทั้งหมด 🔓
             if(loginPrompt) loginPrompt.style.display = "none";
             if(mainAppContent) mainAppContent.style.display = "block";
 
             await loadData(user.uid);
         } else {
-            // ยังไม่ได้ล็อกอิน
             currentUserUid = null;
             if(logoutBtn) logoutBtn.style.display = "none";
             if(userInfo) userInfo.style.display = "none";
             
-            // โชว์หน้าต่างล็อกอิน และซ่อนตัวแอปทั้งหมด 🔒
             if(loginPrompt) loginPrompt.style.display = "flex";
             if(mainAppContent) mainAppContent.style.display = "none";
             
-            // ล้างข้อมูลหน้าจอออก (เผื่อกันเหนียวไม่ให้ใครเข้าถึงข้อมูลได้)
             folders = [];
             tags = [];
             render();
