@@ -327,14 +327,25 @@
 
     async function loadData(uid) {
         try {
-            showSyncStatus("กำลังดึงข้อมูลจาก Cloud...", "loading"); // โชว์สถานะกำลังดึง
-            
-            const docRef = db.collection("users").doc(uid);
-            const docSnap = await docRef.get();
-            
+            // 🌟 1. [ของใหม่] โหลดข้อมูลจากเครื่อง (Cache) ขึ้นมาโชว์ทันทีก่อนเลย! ไม่ต้องรอ Cloud
             let localFolders = JSON.parse(localStorage.getItem("folders")) || [];
             let localTags = JSON.parse(localStorage.getItem("tags")) || [];
             let localModified = parseInt(localStorage.getItem("lastModified")) || 0;
+
+            if (localFolders.length > 0) {
+                folders = localFolders;
+                tags = localTags;
+                lastModified = localModified;
+                render(); 
+                renderTagInputs();
+                if(current !== -1) viewCards();
+                console.log("⚡ โหลดข้อมูลจากเครื่อง (Cache) เสร็จสิ้นภายใน 0.1 วินาที!");
+            }
+
+            // 🌟 2. ปล่อยให้ระบบแอบไปถาม Cloud เบื้องหลัง (UI ไม่ค้างแล้ว)
+            setSyncStatus('loading', '🔄 กำลังตรวจสอบข้อมูลล่าสุดจาก Cloud...');
+            const docRef = db.collection("users").doc(uid);
+            const docSnap = await docRef.get(); // <--- ตอนนี้มันรอดาวน์โหลดได้เลย เพราะหน้าจอเราโชว์การ์ดไปแล้ว
 
             let cloudHasData = false;
             let cloudModified = 0;
@@ -351,48 +362,49 @@
                 }
             }
 
+            // 🌟 3. เทียบเวลา (Timestamp) เพื่อจัดการข้อมูล
             if (!cloudHasData && localFolders.length > 0) {
                 console.log("☁️ นำข้อมูลจากเครื่อง ดันขึ้น Cloud อัตโนมัติ!");
-                folders = localFolders;
-                tags = localTags;
-                lastModified = localModified || Date.now();
+                setSyncStatus('loading', '⬆️ กำลังส่งข้อมูลชุดแรกขึ้น Cloud...');
                 save(); 
             } else if (cloudHasData) {
                 if (localModified > cloudModified) {
+                    // ข้อมูลในเครื่องเพิ่งพิมพ์ใหม่สดๆ ร้อนๆ ให้ดันขึ้น Cloud
                     console.log("⬆️ ข้อมูลในเครื่องใหม่กว่า! กำลังอัปโหลดส่วนที่ค้างอยู่...");
-                    folders = localFolders;
-                    tags = localTags;
-                    lastModified = localModified;
+                    setSyncStatus('loading', '⬆️ กำลังอัปโหลดข้อมูลที่ค้างอยู่...');
                     save(); 
-                } else {
-                    console.log("⬇️ โหลดข้อมูลล่าสุดจาก Cloud สำเร็จ!");
+                } else if (cloudModified > localModified) {
+                    // มีเครื่องอื่นอัปเดตข้อมูลไว้ใหม่กว่า! ให้โหลดมาทับหน้าจอ
+                    console.log("⬇️ ข้อมูลบน Cloud ใหม่กว่า โหลดมาทับในเครื่องสำเร็จ!");
                     folders = cloudFolders;
                     tags = cloudTags;
                     lastModified = cloudModified;
                     localStorage.setItem("folders", JSON.stringify(folders));
                     localStorage.setItem("tags", JSON.stringify(tags));
                     localStorage.setItem("lastModified", lastModified);
-                    showSyncStatus("ดึงข้อมูลสำเร็จ!", "success"); // โชว์สถานะสำเร็จ
+                    
+                    // สั่งอัปเดตหน้าจอใหม่ (เพราะมีของใหม่ลงมา)
+                    render();
+                    renderTagInputs();
+                    if(current !== -1) viewCards();
+                } else {
+                    console.log("✅ ข้อมูลในเครื่องและ Cloud เป็นเวอร์ชันเดียวกันเป๊ะ!");
                 }
             } else {
-                folders = [];
-                tags = [];
-                lastModified = Date.now();
-                showSyncStatus("ซิงค์เรียบร้อย", "success");
+                folders = []; tags = []; lastModified = Date.now();
+                render(); // กรณีที่ไอดีนี้ยังไม่มีข้อมูลอะไรเลยทั้งในเครื่องและ Cloud
             }
 
-            render();
-            renderTagInputs();
+            setSyncStatus('success', '✅ ข้อมูลพร้อมใช้งานและตรงกับ Cloud');
             
-            // ระบบ Real-time Sync 
+            // 🌟 4. ระบบ Real-time Sync (เปิดทิ้งไว้ฟังการเปลี่ยนแปลงตลอดเวลา)
             docRef.onSnapshot((doc) => {
                 if (doc.exists) {
                     let data = doc.data();
                     let newCloudModified = data.lastModified || 0;
                     
                     if (newCloudModified > lastModified) {
-                        showSyncStatus("ตรวจพบข้อมูลใหม่ กำลังอัปเดต...", "loading"); // กำลังดาวน์โหลดอัตโนมัติ
-
+                        setSyncStatus('loading', '⬇️ มีคนอัปเดตข้อมูลจากเครื่องอื่น กำลังดึงข้อมูล...');
                         folders = data.folders || [];
                         tags = data.tags || [];
                         lastModified = newCloudModified;
@@ -405,16 +417,15 @@
                             renderTagInputs();
                             if(current !== -1) viewCards();
                             console.log("🔄 ซิงค์ข้อมูลข้ามอุปกรณ์เรียบร้อย!");
+                            setSyncStatus('success', '✅ อัปเดตข้อมูลตรงกันแล้ว');
                         }
-                        
-                        showSyncStatus("ซิงค์ข้อมูลตรงกันแล้ว! ✅", "success"); // อัปเดตอัตโนมัติเสร็จสิ้น
                     }
                 }
             });
 
         } catch(e) {
             console.error("Load Error:", e);
-            showSyncStatus("โหลดข้อมูลไม่สำเร็จ", "error");
+            setSyncStatus('error', '❌ เกิดข้อผิดพลาดในการดึงข้อมูล');
         }
     }
 
