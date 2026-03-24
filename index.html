@@ -44,11 +44,14 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-<div id="app-container">
-    
-    <div id="syncStatus" style="display:none; position:fixed; top:15px; left:50%; transform:translateX(-50%); padding:8px 20px; border-radius:20px; font-size:14px; font-weight:bold; box-shadow:0 4px 10px rgba(0,0,0,0.2); z-index:9999; transition:0.3s;">
+<div id="syncStatus" style="position: fixed; bottom: 20px; right: 20px; background: white; padding: 10px 15px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 9999; font-size: 14px; border-left: 4px solid #10b981; display: none; opacity: 0; transition: all 0.3s ease;">
+    <span id="syncText">✅ พร้อมใช้งาน</span>
+    <div id="progressBarContainer" style="width: 100%; height: 4px; background: #e2e8f0; margin-top: 8px; border-radius: 2px; overflow: hidden; display: none;">
+        <div id="progressBar" style="width: 0%; height: 100%; background: #f59e0b; transition: width 0.3s ease-out;"></div>
     </div>
+</div>
 
+<div id="app-container">
     <div id="auth-controls" style="position: fixed; top: 12px; right: 15px; z-index: 1001; display: flex; align-items: center; gap: 10px;">
         <span id="userInfo" style="font-size: 14px; font-weight: bold; color: #6366f1; background: white; padding: 5px 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: none;"></span>
         <button id="logoutBtn" onclick="logout()" style="background: #ea4335; color: white; margin: 0; padding: 8px 15px; display: none;">🚪 ออกจากระบบ</button>
@@ -245,31 +248,72 @@
 
 <script>
     // ==========================================
-    // 🔥 ระบบแจ้งเตือนสถานะการซิงค์ (UI Status)
+    // 🔥 ระบบแจ้งเตือนสถานะพร้อมหลอดโหลดเปอร์เซ็นต์
     // ==========================================
+    let progressInterval;
     let syncTimeout;
-    function showSyncStatus(message, type="loading") {
-        const banner = document.getElementById("syncStatus");
-        if (!banner) return;
+
+    function setSyncStatus(type, text) {
+        const statusEl = document.getElementById("syncStatus");
+        const textEl = document.getElementById("syncText");
+        const barContainer = document.getElementById("progressBarContainer");
+        const bar = document.getElementById("progressBar");
+
+        if(!statusEl) return;
         
+        statusEl.style.display = "block";
+        setTimeout(() => statusEl.style.opacity = "1", 10); // เฟดอินเข้ามา
+        
+        textEl.innerText = text;
+
+        // ล้างคำสั่งจับเวลาเก่าทั้งหมด
+        clearInterval(progressInterval);
         clearTimeout(syncTimeout);
-        banner.style.display = "block";
-        
-        if (type === "loading") {
-            banner.innerHTML = `🔄 ${message}`;
-            banner.style.background = "#eab308"; // สีเหลือง
-            banner.style.color = "#000";
-        } else if (type === "success") {
-            banner.innerHTML = `✅ ${message}`;
-            banner.style.background = "#10b981"; // สีเขียว
-            banner.style.color = "#fff";
-            syncTimeout = setTimeout(() => { banner.style.display = "none"; }, 3000); // หายไปใน 3 วินาที
-        } else if (type === "error") {
-            banner.innerHTML = `❌ ${message}`;
-            banner.style.background = "#ef4444"; // สีแดง
-            banner.style.color = "#fff";
+
+        if (type === 'loading') {
+            statusEl.style.borderLeftColor = "#f59e0b"; // แถบซ้ายสีส้ม
+            barContainer.style.display = "block"; // โชว์หลอดโหลด
+            bar.style.backgroundColor = "#f59e0b"; 
+            bar.style.width = "10%"; // เริ่มวิ่งที่ 10%
+            
+            let percent = 10;
+            // หลอกตาให้หลอดโหลดวิ่งไปเรื่อยๆ จนถึง 90%
+            progressInterval = setInterval(() => {
+                if (percent < 90) {
+                    percent += Math.floor(Math.random() * 10) + 5; 
+                    if (percent > 90) percent = 90;
+                    bar.style.width = percent + "%";
+                }
+            }, 300);
+
+        } else if (type === 'success') {
+            statusEl.style.borderLeftColor = "#10b981"; // เปลี่ยนเป็นสีเขียว
+            bar.style.backgroundColor = "#10b981"; 
+            bar.style.width = "100%"; // วิ่งเต็มหลอด 100%
+            
+            // รอ 1 วินาที ให้คนเห็นหลอดเต็ม แล้วค่อยซ่อนหลอด
+            setTimeout(() => {
+                barContainer.style.display = "none";
+                bar.style.width = "0%";
+            }, 1000);
+            
+            // ปิดป้ายสถานะทั้งหมดหลังผ่านไป 3 วินาที
+            syncTimeout = setTimeout(() => {
+                statusEl.style.opacity = "0";
+                setTimeout(() => statusEl.style.display = "none", 300);
+            }, 3000);
+
+        } else if (type === 'error') {
+            statusEl.style.borderLeftColor = "#ef4444"; // สีแดง
+            barContainer.style.display = "none";
+            
+            syncTimeout = setTimeout(() => {
+                statusEl.style.opacity = "0";
+                setTimeout(() => statusEl.style.display = "none", 300);
+            }, 5000);
         }
     }
+
 
     // ==========================================
     // 🔥 FIREBASE INITIALIZATION & AUTHENTICATION 🔥
@@ -325,9 +369,10 @@
         });
     }
 
+    // 🌟 ระบบดึงข้อมูลแบบใหม่ โชว์เร็วกว่าจรวด!
     async function loadData(uid) {
         try {
-            // 🌟 1. [ของใหม่] โหลดข้อมูลจากเครื่อง (Cache) ขึ้นมาโชว์ทันทีก่อนเลย! ไม่ต้องรอ Cloud
+            // 🌟 1. โหลดข้อมูลจากเครื่อง (Cache) ขึ้นมาโชว์ทันทีก่อนเลย!
             let localFolders = JSON.parse(localStorage.getItem("folders")) || [];
             let localTags = JSON.parse(localStorage.getItem("tags")) || [];
             let localModified = parseInt(localStorage.getItem("lastModified")) || 0;
@@ -342,10 +387,10 @@
                 console.log("⚡ โหลดข้อมูลจากเครื่อง (Cache) เสร็จสิ้นภายใน 0.1 วินาที!");
             }
 
-            // 🌟 2. ปล่อยให้ระบบแอบไปถาม Cloud เบื้องหลัง (UI ไม่ค้างแล้ว)
+            // 🌟 2. ปล่อยให้ระบบแอบไปถาม Cloud เบื้องหลัง
             setSyncStatus('loading', '🔄 กำลังตรวจสอบข้อมูลล่าสุดจาก Cloud...');
             const docRef = db.collection("users").doc(uid);
-            const docSnap = await docRef.get(); // <--- ตอนนี้มันรอดาวน์โหลดได้เลย เพราะหน้าจอเราโชว์การ์ดไปแล้ว
+            const docSnap = await docRef.get(); 
 
             let cloudHasData = false;
             let cloudModified = 0;
@@ -369,12 +414,10 @@
                 save(); 
             } else if (cloudHasData) {
                 if (localModified > cloudModified) {
-                    // ข้อมูลในเครื่องเพิ่งพิมพ์ใหม่สดๆ ร้อนๆ ให้ดันขึ้น Cloud
                     console.log("⬆️ ข้อมูลในเครื่องใหม่กว่า! กำลังอัปโหลดส่วนที่ค้างอยู่...");
                     setSyncStatus('loading', '⬆️ กำลังอัปโหลดข้อมูลที่ค้างอยู่...');
                     save(); 
                 } else if (cloudModified > localModified) {
-                    // มีเครื่องอื่นอัปเดตข้อมูลไว้ใหม่กว่า! ให้โหลดมาทับหน้าจอ
                     console.log("⬇️ ข้อมูลบน Cloud ใหม่กว่า โหลดมาทับในเครื่องสำเร็จ!");
                     folders = cloudFolders;
                     tags = cloudTags;
@@ -383,7 +426,6 @@
                     localStorage.setItem("tags", JSON.stringify(tags));
                     localStorage.setItem("lastModified", lastModified);
                     
-                    // สั่งอัปเดตหน้าจอใหม่ (เพราะมีของใหม่ลงมา)
                     render();
                     renderTagInputs();
                     if(current !== -1) viewCards();
@@ -392,12 +434,12 @@
                 }
             } else {
                 folders = []; tags = []; lastModified = Date.now();
-                render(); // กรณีที่ไอดีนี้ยังไม่มีข้อมูลอะไรเลยทั้งในเครื่องและ Cloud
+                render(); 
             }
 
             setSyncStatus('success', '✅ ข้อมูลพร้อมใช้งานและตรงกับ Cloud');
             
-            // 🌟 4. ระบบ Real-time Sync (เปิดทิ้งไว้ฟังการเปลี่ยนแปลงตลอดเวลา)
+            // 🌟 4. ระบบ Real-time Sync 
             docRef.onSnapshot((doc) => {
                 if (doc.exists) {
                     let data = doc.data();
@@ -487,18 +529,18 @@
     let calDate = new Date();
 
     function save() {
-        lastModified = Date.now(); // อัปเดตเวลาทุกครั้งที่มีการกดเซฟ
+        lastModified = Date.now(); 
         localStorage.setItem("lastModified", lastModified);
         localStorage.setItem("folders", JSON.stringify(folders));
         localStorage.setItem("tags", JSON.stringify(tags));
         if (current !== -1) localStorage.setItem("currentFolderIdx", current);
 
         if (currentUserUid) {
+            setSyncStatus('loading', '🔄 กำลังบันทึกขึ้น Cloud...');
+            
             let dataString = JSON.stringify({folders: folders, tags: tags});
             let dataSizeMB = (new Blob([dataString]).size) / 1024 / 1024;
             
-            showSyncStatus("กำลังอัปโหลดขึ้น Cloud...", "loading"); // โชว์สถานะกำลังเซฟ
-
             db.collection("users").doc(currentUserUid).set({
                 folders: folders,
                 tags: tags,
@@ -506,11 +548,11 @@
             }, { merge: true })
             .then(() => {
                 console.log("☁️ บันทึกขึ้น Cloud สำเร็จ (" + dataSizeMB.toFixed(2) + " MB)");
-                showSyncStatus("บันทึกขึ้น Cloud แล้ว!", "success"); // โชว์สถานะเซฟเสร็จสิ้น
+                setSyncStatus('success', '✅ บันทึกข้อมูลสำเร็จแล้ว');
             })
             .catch(e => {
                 console.error("Cloud Save Error:", e);
-                showSyncStatus("อัปโหลดล้มเหลว (ไฟล์ใหญ่ไป)", "error"); // โชว์ Error ให้รู้ตัว
+                setSyncStatus('error', '❌ บันทึกไม่สำเร็จ');
                 alert("❌ เซิร์ฟเวอร์ Firebase ปฏิเสธการบันทึกข้อมูล! อาจเพราะข้อมูลมีขนาดรวมกันใหญ่เกินไป (เกิน 1MB) ข้อมูลจะถูกเก็บไว้แค่ในเครื่องชั่วคราว");
             });
         }
@@ -791,8 +833,10 @@
 
     function createTag() {
         let name = document.getElementById("tagName").value.trim();
+        
         let intervalVal = document.getElementById("tagInterval").value;
         let interval = intervalVal !== "" ? parseInt(intervalVal) : 1; 
+        
         let nextT = document.getElementById("tagPromote").value;
         let failT = document.getElementById("tagDemote").value;
         let color = document.getElementById("tagColor").value;
@@ -1434,7 +1478,7 @@
     function prevMonth(){ calDate.setMonth(calDate.getMonth()-1); renderCalendar(); }
 
     window.onload = () => {
-        processOverdueCards(); // สั่งทำงานออโต้เมื่อเปิดเว็บ
+        processOverdueCards(); 
         render();
     };
 </script>
