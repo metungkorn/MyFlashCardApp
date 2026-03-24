@@ -240,7 +240,7 @@
     const db = firebase.firestore();
     let currentUserUid = null;
 
-    // แก้ปุ่ม Login ให้ใช้ Redirect แทน Popup (แก้ปัญหา iPad บล็อกป๊อปอัป)
+    // 1. ใช้ Redirect แก้ปัญหา iPad และมือถือบล็อกป๊อปอัป
     function login() {
         const provider = new firebase.auth.GoogleAuthProvider();
         auth.signInWithRedirect(provider).catch(e => alert("Login Error: " + e.message));
@@ -250,45 +250,83 @@
         auth.signOut().then(() => location.reload());
     }
 
-    // แก้ระบบโหลดข้อมูล ให้ฉลาดขึ้น (ดันเครื่องขึ้น Cloud ถ้า Cloud ว่าง)
+    // 2. ฟังก์ชันโหลดข้อมูลอัจฉริยะ (กันข้อมูลหาย + ดันข้อมูลขึ้น Cloud)
     async function loadData(uid) {
         try {
             const docRef = db.collection("users").doc(uid);
             const docSnap = await docRef.get();
             
+            // ดึงข้อมูลในเครื่อง (Local) ก่อน เผื่อว่ามีข้อมูลที่ยังไม่ได้ขึ้น Cloud
             let localFolders = JSON.parse(localStorage.getItem("folders")) || [];
             let localTags = JSON.parse(localStorage.getItem("tags")) || [];
 
+            // ตรวจสอบว่าใน Cloud มีข้อมูลหรือไม่
+            let cloudHasData = false;
             if (docSnap.exists) {
                 let data = docSnap.data();
-                let cloudFolders = data.folders || [];
-                let cloudTags = data.tags || [];
-
-                if (cloudFolders.length === 0 && localFolders.length > 0) {
-                    console.log("☁️ นำข้อมูลจากเครื่อง ดันขึ้น Cloud");
-                    folders = localFolders;
-                    tags = localTags;
-                    save(); 
-                } else {
-                    console.log("✅ โหลดข้อมูลจาก Cloud สำเร็จ!");
-                    folders = cloudFolders;
-                    tags = cloudTags;
-                    localStorage.setItem("folders", JSON.stringify(folders));
-                    localStorage.setItem("tags", JSON.stringify(tags));
+                if (data.folders && data.folders.length > 0) {
+                    cloudHasData = true;
                 }
-            } else {
-                console.log("🌟 ผู้ใช้ใหม่ กำลังสร้างฐานข้อมูลบน Cloud...");
+            }
+
+            if (!cloudHasData && localFolders.length > 0) {
+                // กรณีที่ 1: ล็อกอินครั้งแรก (Cloud ว่าง) แต่ในเครื่องมีข้อมูล
+                console.log("☁️ นำข้อมูลจากเครื่อง ดันขึ้น Cloud อัตโนมัติ!");
                 folders = localFolders;
                 tags = localTags;
-                save(); 
+                // บังคับเซฟขึ้น Cloud เพื่อไม่ให้ข้อมูลหาย
+                db.collection("users").doc(uid).set({
+                    folders: folders,
+                    tags: tags
+                }, { merge: true });
+            } else if (cloudHasData) {
+                // กรณีที่ 2: ใน Cloud มีข้อมูลอยู่แล้ว ให้ดึงมาแสดงผลและทับในเครื่อง
+                console.log("✅ โหลดข้อมูลจาก Cloud สำเร็จ!");
+                let data = docSnap.data();
+                folders = data.folders || [];
+                tags = data.tags || [];
+                localStorage.setItem("folders", JSON.stringify(folders));
+                localStorage.setItem("tags", JSON.stringify(tags));
+            } else {
+                // กรณีที่ 3: ผู้ใช้ใหม่เอี่ยม ไม่มีข้อมูลทั้งคู่
+                folders = [];
+                tags = [];
             }
+
             render();
             renderTagInputs();
+            
+            // 3. 🔥 เปิดระบบ Real-time Sync (ซิงค์ข้ามอุปกรณ์ทันที)
+            docRef.onSnapshot((doc) => {
+                if (doc.exists) {
+                    let data = doc.data();
+                    let newFolders = data.folders || [];
+                    let newTags = data.tags || [];
+                    
+                    // ถ้าระบบจับได้ว่าข้อมูลใน Cloud มีการเปลี่ยนแปลง (เช่น พิมพ์จากอีกเครื่อง)
+                    if (JSON.stringify(newFolders) !== JSON.stringify(folders)) {
+                        folders = newFolders;
+                        tags = newTags;
+                        localStorage.setItem("folders", JSON.stringify(folders));
+                        localStorage.setItem("tags", JSON.stringify(tags));
+                        
+                        // อัปเดตหน้าจอทันที (ถ้าไม่ได้อยู่ในโหมดกำลังเล่นการ์ด)
+                        if (!playing) { 
+                            render();
+                            renderTagInputs();
+                            if(current !== -1) viewCards();
+                            console.log("🔄 ซิงค์ข้อมูลข้ามอุปกรณ์เรียบร้อย!");
+                        }
+                    }
+                }
+            });
+
         } catch(e) {
             console.error("Load Error:", e);
         }
     }
 
+    // ตัวเช็คสถานะล็อกอิน
     auth.onAuthStateChanged(async (user) => {
         const loginBtn = document.getElementById("loginBtn");
         const logoutBtn = document.getElementById("logoutBtn");
@@ -309,6 +347,7 @@
             if(logoutBtn) logoutBtn.style.display = "none";
             if(userInfo) userInfo.style.display = "none";
             
+            // ถ้าออกจากระบบ ก็ยังโชว์ข้อมูลในเครื่องอยู่ (ป้องกันความตกใจว่าข้อมูลหาย)
             folders = JSON.parse(localStorage.getItem("folders")) || [];
             tags = JSON.parse(localStorage.getItem("tags")) || [];
             render();
