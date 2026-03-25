@@ -82,6 +82,29 @@
 
         <div id="homePage">
             <h1>📚 Flashcard (Ultimate)</h1>
+
+            <div style="background:#fff; padding:15px; border-radius:15px; margin-bottom:20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align:center; border: 2px dashed #cbd5e1;">
+                <strong style="font-size: 16px; color:#1e293b;">💾 ระบบเซฟและกู้คืนข้อมูล (Backup / Restore)</strong>
+                <p style="font-size:12px; color:#64748b; margin-bottom:10px;">เซฟข้อมูลเก็บไว้ในเครื่อง เผื่อระบบ Cloud มีปัญหา หรือนำไฟล์เซฟกลับมาโหลดใหม่</p>
+                <div style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
+                    <button onclick="openSaveModal()" style="background:#3b82f6; color:white; padding:10px 20px; border-radius:10px; font-weight:bold; box-shadow:0 4px 6px rgba(59,130,246,0.3);">📥 สร้างไฟล์เซฟ (Save)</button>
+                    <button onclick="triggerLoadSave()" style="background:#f59e0b; color:white; padding:10px 20px; border-radius:10px; font-weight:bold; box-shadow:0 4px 6px rgba(245,158,11,0.3);">📤 โหลดไฟล์เซฟ (Load)</button>
+                </div>
+                <input type="file" id="loadSaveInput" accept=".json" style="display:none;" onchange="handleLoadSave(event)">
+            </div>
+
+            <div id="saveModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:3000;">
+                <div style="background:white; padding:25px; border-radius:20px; width:90%; max-width:400px; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+                    <h3 style="margin-top:0; color:#1e293b;">💾 ตั้งชื่อไฟล์เซฟของคุณ</h3>
+                    <p style="font-size:12px; color:#64748b;">ระบบจะทำการโหลดเป็นไฟล์ลงในโฟลเดอร์ Download ของคุณ</p>
+                    <input type="text" id="saveFileName" placeholder="เช่น backup_ก่อนสอบ" style="width:100%; padding:12px; box-sizing:border-box; margin-bottom:15px; border-radius:8px; border:1px solid #cbd5e1; font-size:16px;">
+                    <div style="display:flex; gap:10px;">
+                        <button onclick="executeSaveFile()" style="flex-grow:1; background:#10b981; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold; font-size:16px;">✅ ยืนยันเซฟ</button>
+                        <button onclick="closeSaveModal()" style="background:#ef4444; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold; font-size:16px;">❌ ยกเลิก</button>
+                    </div>
+                </div>
+            </div>
+            ```
             
             <section>
                 <h3>📂 โฟลเดอร์</h3>
@@ -881,6 +904,8 @@
     }
 
     function deleteTag(i) { if (confirm(`ลบแท็ก "${tags[i].name}"?`)) { tags.splice(i, 1); save(); renderTagInputs(); } }
+
+    
 
     function importCards() {
         if (current === -1) return alert("กรุณาเลือกโฟลเดอร์ก่อนนำเข้า");
