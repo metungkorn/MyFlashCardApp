@@ -287,6 +287,18 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
+    
+    // 🚀 เพิ่มระบบ Offline-First Persistence (จาก 4.6) 
+    // ช่วยให้แอปโหลดไวแม้เน็ตหลุด
+    db.enablePersistence()
+      .catch((err) => {
+          if (err.code == 'failed-precondition') {
+              console.warn('เปิดใช้ Offline Mode ไม่ได้ เพราะเปิดหลายแท็บ');
+          } else if (err.code == 'unimplemented') {
+              console.warn('เบราว์เซอร์ไม่รองรับ Offline Mode');
+          }
+      });
+
     let currentUserUid = null;
 
     auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
@@ -327,7 +339,7 @@
 
     async function loadData(uid) {
         try {
-            // 🌟 1. [ของใหม่] โหลดข้อมูลจากเครื่อง (Cache) ขึ้นมาโชว์ทันทีก่อนเลย! ไม่ต้องรอ Cloud
+            // 🌟 1. โหลดข้อมูลจากเครื่อง (Cache) ขึ้นมาโชว์ทันที
             let localFolders = JSON.parse(localStorage.getItem("folders")) || [];
             let localTags = JSON.parse(localStorage.getItem("tags")) || [];
             let localModified = parseInt(localStorage.getItem("lastModified")) || 0;
@@ -342,10 +354,10 @@
                 console.log("⚡ โหลดข้อมูลจากเครื่อง (Cache) เสร็จสิ้นภายใน 0.1 วินาที!");
             }
 
-            // 🌟 2. ปล่อยให้ระบบแอบไปถาม Cloud เบื้องหลัง (UI ไม่ค้างแล้ว)
-            setSyncStatus('loading', '🔄 กำลังตรวจสอบข้อมูลล่าสุดจาก Cloud...');
+            // 🌟 2. ดึง Cloud เบื้องหลัง
+            showSyncStatus('🔄 กำลังตรวจสอบข้อมูลล่าสุดจาก Cloud...', 'loading'); // แก้ไขการเรียกใช้ฟังก์ชันให้ถูกชื่อ
             const docRef = db.collection("users").doc(uid);
-            const docSnap = await docRef.get(); // <--- ตอนนี้มันรอดาวน์โหลดได้เลย เพราะหน้าจอเราโชว์การ์ดไปแล้ว
+            const docSnap = await docRef.get(); 
 
             let cloudHasData = false;
             let cloudModified = 0;
@@ -362,19 +374,17 @@
                 }
             }
 
-            // 🌟 3. เทียบเวลา (Timestamp) เพื่อจัดการข้อมูล
+            // 🌟 3. เทียบเวลา (Timestamp)
             if (!cloudHasData && localFolders.length > 0) {
                 console.log("☁️ นำข้อมูลจากเครื่อง ดันขึ้น Cloud อัตโนมัติ!");
-                setSyncStatus('loading', '⬆️ กำลังส่งข้อมูลชุดแรกขึ้น Cloud...');
+                showSyncStatus('⬆️ กำลังส่งข้อมูลชุดแรกขึ้น Cloud...', 'loading');
                 save(); 
             } else if (cloudHasData) {
                 if (localModified > cloudModified) {
-                    // ข้อมูลในเครื่องเพิ่งพิมพ์ใหม่สดๆ ร้อนๆ ให้ดันขึ้น Cloud
                     console.log("⬆️ ข้อมูลในเครื่องใหม่กว่า! กำลังอัปโหลดส่วนที่ค้างอยู่...");
-                    setSyncStatus('loading', '⬆️ กำลังอัปโหลดข้อมูลที่ค้างอยู่...');
+                    showSyncStatus('⬆️ กำลังอัปโหลดข้อมูลที่ค้างอยู่...', 'loading');
                     save(); 
                 } else if (cloudModified > localModified) {
-                    // มีเครื่องอื่นอัปเดตข้อมูลไว้ใหม่กว่า! ให้โหลดมาทับหน้าจอ
                     console.log("⬇️ ข้อมูลบน Cloud ใหม่กว่า โหลดมาทับในเครื่องสำเร็จ!");
                     folders = cloudFolders;
                     tags = cloudTags;
@@ -383,7 +393,6 @@
                     localStorage.setItem("tags", JSON.stringify(tags));
                     localStorage.setItem("lastModified", lastModified);
                     
-                    // สั่งอัปเดตหน้าจอใหม่ (เพราะมีของใหม่ลงมา)
                     render();
                     renderTagInputs();
                     if(current !== -1) viewCards();
@@ -392,19 +401,19 @@
                 }
             } else {
                 folders = []; tags = []; lastModified = Date.now();
-                render(); // กรณีที่ไอดีนี้ยังไม่มีข้อมูลอะไรเลยทั้งในเครื่องและ Cloud
+                render(); 
             }
 
-            setSyncStatus('success', '✅ ข้อมูลพร้อมใช้งานและตรงกับ Cloud');
+            showSyncStatus('✅ ข้อมูลพร้อมใช้งานและตรงกับ Cloud', 'success');
             
-            // 🌟 4. ระบบ Real-time Sync (เปิดทิ้งไว้ฟังการเปลี่ยนแปลงตลอดเวลา)
+            // 🌟 4. ระบบ Real-time Sync 
             docRef.onSnapshot((doc) => {
                 if (doc.exists) {
                     let data = doc.data();
                     let newCloudModified = data.lastModified || 0;
                     
                     if (newCloudModified > lastModified) {
-                        setSyncStatus('loading', '⬇️ มีคนอัปเดตข้อมูลจากเครื่องอื่น กำลังดึงข้อมูล...');
+                        showSyncStatus('⬇️ มีคนอัปเดตข้อมูลจากเครื่องอื่น กำลังดึงข้อมูล...', 'loading');
                         folders = data.folders || [];
                         tags = data.tags || [];
                         lastModified = newCloudModified;
@@ -417,7 +426,7 @@
                             renderTagInputs();
                             if(current !== -1) viewCards();
                             console.log("🔄 ซิงค์ข้อมูลข้ามอุปกรณ์เรียบร้อย!");
-                            setSyncStatus('success', '✅ อัปเดตข้อมูลตรงกันแล้ว');
+                            showSyncStatus('✅ อัปเดตข้อมูลตรงกันแล้ว', 'success');
                         }
                     }
                 }
@@ -425,12 +434,12 @@
 
         } catch(e) {
             console.error("Load Error:", e);
-            setSyncStatus('error', '❌ เกิดข้อผิดพลาดในการดึงข้อมูล');
+            showSyncStatus('❌ เกิดข้อผิดพลาดในการดึงข้อมูล', 'error');
         }
     }
 
     // ==========================================
-    // 🛡️ ระบบจัดการการเข้าถึงและการดึงข้อมูล (Fix F5 Issue)
+    // 🛡️ ระบบจัดการการเข้าถึงและการดึงข้อมูล 
     // ==========================================
     auth.onAuthStateChanged(async (user) => {
         const logoutBtn = document.getElementById("logoutBtn");
@@ -440,33 +449,27 @@
         const loadingScreen = document.getElementById("loadingScreen");
 
         if (user) {
-            // ✅ เคสที่ 1: ล็อกอินสำเร็จแล้ว
             currentUserUid = user.uid;
             
-            // แสดงผล UI ส่วนบุคคล
             if(logoutBtn) logoutBtn.style.display = "inline-block";
             if(userInfo) {
                 userInfo.style.display = "inline-block";
                 userInfo.innerText = "👤 " + user.displayName;
             }
             
-            // สลับหน้าจอจาก Login -> Main App
             if(loginPrompt) loginPrompt.style.display = "none";
             if(mainAppContent) mainAppContent.style.display = "block";
             if(loadingScreen) loadingScreen.style.display = "none";
 
-            // 🚀 หัวใจสำคัญ: เรียกโหลดข้อมูลเมื่อ "มีสิทธิ์" แล้วเท่านั้น
             console.log("🔐 สิทธิ์การเข้าถึงถูกต้อง: กำลังเริ่มดึงข้อมูล...");
             await loadData(user.uid); 
             
         } else {
-            // ❌ เคสที่ 2: ยังไม่ได้ล็อกอิน
             currentUserUid = null;
             if(loadingScreen) loadingScreen.style.display = "none";
             if(loginPrompt) loginPrompt.style.display = "flex";
             if(mainAppContent) mainAppContent.style.display = "none";
             
-            // ล้างข้อมูลเก่าเพื่อความปลอดภัย
             folders = [];
             tags = [];
             render();
@@ -496,7 +499,7 @@
     let calDate = new Date();
 
     function save() {
-        lastModified = Date.now(); // อัปเดตเวลาทุกครั้งที่มีการกดเซฟ
+        lastModified = Date.now(); 
         localStorage.setItem("lastModified", lastModified);
         localStorage.setItem("folders", JSON.stringify(folders));
         localStorage.setItem("tags", JSON.stringify(tags));
@@ -506,7 +509,7 @@
             let dataString = JSON.stringify({folders: folders, tags: tags});
             let dataSizeMB = (new Blob([dataString]).size) / 1024 / 1024;
             
-            showSyncStatus("กำลังอัปโหลดขึ้น Cloud...", "loading"); // โชว์สถานะกำลังเซฟ
+            showSyncStatus("กำลังอัปโหลดขึ้น Cloud...", "loading");
 
             db.collection("users").doc(currentUserUid).set({
                 folders: folders,
@@ -515,12 +518,12 @@
             }, { merge: true })
             .then(() => {
                 console.log("☁️ บันทึกขึ้น Cloud สำเร็จ (" + dataSizeMB.toFixed(2) + " MB)");
-                showSyncStatus("บันทึกขึ้น Cloud แล้ว!", "success"); // โชว์สถานะเซฟเสร็จสิ้น
+                showSyncStatus("บันทึกขึ้น Cloud แล้ว!", "success");
             })
             .catch(e => {
                 console.error("Cloud Save Error:", e);
-                showSyncStatus("อัปโหลดล้มเหลว (ไฟล์ใหญ่ไป)", "error"); // โชว์ Error ให้รู้ตัว
-                alert("❌ เซิร์ฟเวอร์ Firebase ปฏิเสธการบันทึกข้อมูล! อาจเพราะข้อมูลมีขนาดรวมกันใหญ่เกินไป (เกิน 1MB) ข้อมูลจะถูกเก็บไว้แค่ในเครื่องชั่วคราว");
+                showSyncStatus("อัปโหลดล้มเหลว", "error"); 
+                alert("❌ เซิร์ฟเวอร์ Firebase ปฏิเสธการบันทึกข้อมูล! อาจเพราะเน็ตเวิร์คมีปัญหา ข้อมูลถูกเก็บไว้ในเครื่องคุณเรียบร้อยแล้ว");
             });
         }
     }
@@ -1305,7 +1308,7 @@
         let dueDate = new Date(card.due);
         dueDate.setHours(0, 0, 0, 0); 
 
-        // ห้ามเปลี่ยนแท็กถ้าทบทวนก่อนกำหนด (กรอบสีฟ้ายังไม่ถึง)
+        // ห้ามเปลี่ยนแท็กถ้าทบทวนก่อนกำหนด
         if (dueDate > today) {
             return; 
         }
@@ -1335,7 +1338,7 @@
         if(changed && realCard) { realCard.tag = card.tag; realCard.due = card.due; }
     }
 
-    // ระบบกวาดล้างการ์ดที่ตกค้างในอดีตให้อัปเดตมาที่กรอบสีฟ้าอัตโนมัติ
+    // ระบบกวาดล้างการ์ดที่ตกค้างในอดีตให้อัปเดตมาที่ปัจจุบันอัตโนมัติ
     function processOverdueCards() {
         let today = new Date();
         today.setHours(0, 0, 0, 0); 
@@ -1444,7 +1447,7 @@
 
     window.onload = () => {
         processOverdueCards(); // สั่งทำงานออโต้เมื่อเปิดเว็บ
-        render();
+        // ไม่มี render() ตรงนี้แล้ว เพราะโหลดมาจาก cache หรือ cloud ใน loadData() แทน (เพื่อป้องกันหน้ากระพริบ)
     };
 </script>
 </body>
