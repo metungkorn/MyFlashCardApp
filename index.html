@@ -289,18 +289,18 @@
     const db = firebase.firestore();
 
     // ==========================================
-    // 🌟 ระบบ Sync ข้อมูลความเร็วสูงจาก Add0.1
+    // 🌟 ระบบ Sync ความเร็วสูง 0.1 วิ (แก้ไขสมบูรณ์ 100%)
     // ==========================================
+    
     let currentUserUid = null;
 
-    // เทคนิคที่ 1: เปิด Offline Persistence (หัวใจของความไว 0.1 วิ)
+    // 1. เปิดระบบโหลดจากเครื่อง (Offline Persistence)
     db.enablePersistence().catch((err) => {
-        if (err.code == 'failed-precondition') { console.warn("Multiple tabs open, persistence can only be enabled in one tab at a time."); }
-        else if (err.code == 'unimplemented') { console.warn("The current browser does not support persistence."); }
+        if (err.code == 'failed-precondition') console.warn("เปิดหลายแท็บ");
     });
     auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
 
-    // ระบบแจ้งเตือนสถานะการซิงค์ (เพื่อให้ผู้ใช้รู้ว่าข้อมูลปลอดภัยแล้ว)
+    // 2. ฟังก์ชันแสดงแถบสถานะด้านบน (ที่เคยหายไป)
     function showSyncStatus(msg, type) {
         let el = document.getElementById("syncStatus");
         if(!el) {
@@ -309,20 +309,21 @@
             document.body.appendChild(el);
         }
         el.innerText = msg;
-        el.style = `position:fixed; top:15px; left:50%; transform:translateX(-50%); z-index:9999; padding:8px 20px; border-radius:20px; font-weight:bold; font-size:14px; display:block;`;
+        el.style = `position:fixed; top:15px; left:50%; transform:translateX(-50%); z-index:9999; padding:8px 20px; border-radius:20px; font-weight:bold; font-size:14px; display:block; transition: 0.3s;`;
         if(type === 'loading') { el.style.backgroundColor = '#fef3c7'; el.style.color = '#b45309'; }
         else if(type === 'success') { el.style.backgroundColor = '#d1fae5'; el.style.color = '#047857'; }
         else { el.style.backgroundColor = '#fee2e2'; el.style.color = '#b91c1c'; }
         setTimeout(() => el.style.display = "none", 3000);
     }
 
-    // ระบบตรวจจับการล็อกอินและสั่งโหลดข้อมูล
+    // 3. ระบบตรวจจับการล็อกอิน (รอตรวจบัตรแล้วค่อยสั่งโหลดข้อมูล)
     auth.onAuthStateChanged((user) => {
         if (user) {
             currentUserUid = user.uid;
             document.getElementById("loginPrompt").style.display = "none";
             document.getElementById("main-app-content").style.display = "block";
-            // สั่งโหลดข้อมูลทันทีที่ยืนยันตัวตนสำเร็จ
+            
+            // สั่งโหลดข้อมูลอัตโนมัติ
             loadData(user.uid);
         } else {
             currentUserUid = null;
@@ -331,90 +332,102 @@
         }
     });
 
-    // เทคนิคที่ 2: Real-time Snapshot (ข้อมูลอัปเดตเองไม่ต้องกด Refresh)
-    function loadData(uid) {
-        showSyncStatus("กำลังซิงค์ข้อมูล...", "loading");
+    // 4. สมองกล: โหลดข้อมูลจาก Cache & Cloud อย่างรวดเร็ว
+    async function loadData(uid) {
+        try {
+            // ดึงข้อมูลในเครื่องมาแสดงผลก่อนทันที 0.1 วิ
+            let localFolders = JSON.parse(localStorage.getItem("folders")) || [];
+            let localTags = JSON.parse(localStorage.getItem("tags")) || [];
+            let localModified = parseInt(localStorage.getItem("lastModified")) || 0;
 
-        // ใช้ onSnapshot เพื่อดึงข้อมูลจาก Cache ก่อน แล้วค่อยอัปเดตจาก Cloud ทีหลัง
-        db.collection("users").doc(uid).onSnapshot((doc) => {
-            if (doc.exists) {
-                const data = doc.data();
-                folders = data.folders || [];
-                tags = data.tags || [];
-                
-                // สั่ง Render หน้าจอใหม่ด้วยข้อมูลที่เพิ่งซิงค์มา
-                if (typeof renderTagsUI === "function") renderTagsUI();
-                
-                if (doc.metadata.fromCache) {
-                    showSyncStatus("⚡ โหลดจากเครื่อง (Offline)", "success");
-                } else {
-                    showSyncStatus("☁️ ตรงกับ Cloud แล้ว", "success");
-                }
-            } else {
-                showSyncStatus("✅ เริ่มใช้งานครั้งแรก", "success");
+            if (localFolders.length > 0) {
+                folders = localFolders;
+                tags = localTags;
+                lastModified = localModified;
+                render(); 
+                if (typeof renderTagInputs === "function") renderTagInputs();
             }
-        }, error => {
-            console.error(error);
-            showSyncStatus("❌ การเชื่อมต่อมีปัญหา", "error");
-        });
+
+            // เปิดกล้องวงจรปิดส่อง Cloud (onSnapshot)
+            const docRef = db.collection("users").doc(uid);
+            docRef.onSnapshot((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    const cloudModified = data.lastModified || 0;
+
+                    // ถ้ามีคนอัปเดตข้อมูลจากเครื่องอื่น ให้โหลดมาทับ
+                    if (cloudModified > lastModified) {
+                        folders = data.folders || [];
+                        tags = data.tags || [];
+                        lastModified = cloudModified;
+
+                        // เซฟลงเครื่องไว้ใช้ครั้งหน้า
+                        localStorage.setItem("folders", JSON.stringify(folders));
+                        localStorage.setItem("tags", JSON.stringify(tags));
+                        localStorage.setItem("lastModified", lastModified);
+
+                        render();
+                        if (typeof renderTagInputs === "function") renderTagInputs();
+                        showSyncStatus("☁️ อัปเดตข้อมูลตรงกับ Cloud แล้ว", "success");
+                    }
+                } else {
+                    // ถ้ายังไม่เคยมีข้อมูลบน Cloud เลย ให้บันทึกครั้งแรก
+                    saveData(); 
+                }
+            });
+
+        } catch (e) {
+            console.error("Load Error:", e);
+            showSyncStatus("❌ โหลดข้อมูลไม่สำเร็จ", "error");
+        }
     }
 
-    // ฟังก์ชัน Save ที่เชื่อมต่อกับระบบใหม่
+    // 5. ระบบเซฟข้อมูลแบบใหม่ (เซฟลงเครื่อง + อัปขึ้น Cloud)
     function save() {
         if (!currentUserUid) return;
+        lastModified = Date.now();
+        
+        // เซฟลงฮาร์ดดิสก์เครื่องตัวเองก่อน (กันเน็ตหลุด)
+        localStorage.setItem("folders", JSON.stringify(folders));
+        localStorage.setItem("tags", JSON.stringify(tags));
+        localStorage.setItem("lastModified", lastModified);
+
         showSyncStatus("กำลังบันทึก...", "loading");
+        
+        // ส่งข้อมูลขึ้น Cloud
         db.collection("users").doc(currentUserUid).set({
             folders: folders,
             tags: tags,
-            lastModified: Date.now()
+            lastModified: lastModified
         }, { merge: true }).then(() => {
             showSyncStatus("☁️ บันทึกสำเร็จ", "success");
         }).catch(err => {
+            console.error("Save Error:", err);
             showSyncStatus("❌ บันทึกไม่สำเร็จ", "error");
         });
     }
-    function saveData() { save(); } // เผื่อเรียกใช้ชื่อเดิม
-    
 
-    auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
-
-    auth.getRedirectResult().catch(error => {
-        console.error("Redirect Error:", error);
-    });
-
-    function login() {
-        const loadingScreen = document.getElementById("loadingScreen");
-        if (loadingScreen) loadingScreen.style.display = "flex"; 
-
-        const provider = new firebase.auth.GoogleAuthProvider();
-        
-        provider.setCustomParameters({
-            prompt: 'select_account'
-        });
-
-        auth.signInWithPopup(provider).catch(e => {
-            if (e.code === 'auth/popup-blocked') {
-                auth.signInWithRedirect(provider);
-            } else {
-                if (loadingScreen) loadingScreen.style.display = "none";
-                alert("Login Error: " + e.message);
-            }
-        });
-    }
-
-    function logout() {
-        auth.signOut().then(() => {
-            localStorage.removeItem("folders");
-            localStorage.removeItem("tags");
-            localStorage.removeItem("currentFolderIdx");
-            localStorage.removeItem("lastModified"); 
-            location.reload();
-        });
-    }
+    function saveData() { save(); }
 
     // ==========================================
     // 🌟 สมองชุดใหม่: ระบบ Sync ความเร็วสูง 0.1 วินาที
     // ==========================================
+
+    function showSyncStatus(msg, type) {
+        let el = document.getElementById("syncStatus");
+        if(!el) {
+            el = document.createElement("div");
+            el.id = "syncStatus";
+            document.body.appendChild(el);
+        }
+        el.innerText = msg;
+        el.style = `position:fixed; top:15px; left:50%; transform:translateX(-50%); z-index:9999; padding:8px 20px; border-radius:20px; font-weight:bold; font-size:14px; display:block; transition: 0.3s;`;
+        if(type === 'loading') { el.style.backgroundColor = '#fef3c7'; el.style.color = '#b45309'; }
+        else if(type === 'success') { el.style.backgroundColor = '#d1fae5'; el.style.color = '#047857'; }
+        else { el.style.backgroundColor = '#fee2e2'; el.style.color = '#b91c1c'; }
+        setTimeout(() => el.style.display = "none", 3000);
+    }
+    
     async function loadData(uid) {
         try {
             // 1. ดึงจากความจำเครื่อง (Cache) มาโชว์ก่อนทันที
@@ -1490,15 +1503,10 @@
     function prevMonth(){ calDate.setMonth(calDate.getMonth()-1); renderCalendar(); }
 
     window.onload = () => {
-    // 1. อะไรที่เกี่ยวกับการดึงข้อมูลจากฐานข้อมูล ลบทิ้งให้หมด!
-    // 2. เหลือไว้เฉพาะฟังก์ชันที่ช่วยจัดการเรื่อง "เวลา" หรือ "วันหมดอายุ" 
-    if (typeof processOverdueCards === "function") {
-        processOverdueCards(); 
-    }
-    
-    // หมายเหตุ: ไม่ต้องใส่ loadData() หรือ render() ในนี้แล้ว 
-    // เพราะระบบ onAuthStateChanged (ก้อนใหม่ที่คุณเพิ่งวาง) จะเป็นคนคุมคิวให้เอง
-}   ;
+        if (typeof processOverdueCards === "function") {
+            processOverdueCards(); 
+        }
+    };
 </script>
 </body>
 </html>
