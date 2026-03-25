@@ -1490,6 +1490,8 @@
         document.getElementById("calendarGrid").innerHTML = html;
     }
 
+    
+
     function showDayDetails(y, m, d) {
         const targetDate = new Date(y, m, d).toDateString();
         document.getElementById("modalDateTitle").innerText = `📅 รายการวันที่ ${d}/${m+1}/${y}`;
@@ -1513,6 +1515,93 @@
     function closeModal() { document.getElementById("calendarModal").style.display = "none"; }
     function nextMonth(){ calDate.setMonth(calDate.getMonth()+1); renderCalendar(); }
     function prevMonth(){ calDate.setMonth(calDate.getMonth()-1); renderCalendar(); }
+
+    // ==========================================
+    // 💾 ระบบสำรองข้อมูล (Manual Backup / Restore)
+    // ==========================================
+
+    // 1. เปิดหน้าต่างตั้งชื่อเซฟ (ดึงวันที่ปัจจุบันมาตั้งเป็นชื่อเริ่มต้นให้ด้วย)
+    function openSaveModal() {
+        let today = new Date();
+        let dateStr = `${today.getFullYear()}${(today.getMonth()+1).toString().padStart(2,'0')}${today.getDate().toString().padStart(2,'0')}`;
+        document.getElementById("saveFileName").value = `Flashcard_Save_${dateStr}`;
+        document.getElementById("saveModal").style.display = "flex";
+    }
+
+    // 2. ปิดหน้าต่างเซฟ
+    function closeSaveModal() {
+        document.getElementById("saveModal").style.display = "none";
+    }
+
+    // 3. เริ่มบีบอัดข้อมูลและสร้างไฟล์ดาวน์โหลด (Save)
+    function executeSaveFile() {
+        let fileName = document.getElementById("saveFileName").value.trim();
+        if (!fileName) return alert("กรุณาตั้งชื่อไฟล์เซฟครับ");
+        
+        // รวบรวมข้อมูลโฟลเดอร์และแท็กทั้งหมดของคุณ
+        let saveData = {
+            folders: folders,
+            tags: tags,
+            lastModified: Date.now()
+        };
+
+        // แปลงข้อมูลเป็นข้อความ JSON
+        let dataStr = JSON.stringify(saveData, null, 2);
+        let blob = new Blob([dataStr], { type: "application/json" });
+        let url = URL.createObjectURL(blob);
+
+        // แอบสร้างปุ่มและสั่งกดดาวน์โหลดเข้าเครื่องอัตโนมัติ
+        let a = document.createElement("a");
+        a.href = url;
+        a.download = fileName.endsWith(".json") ? fileName : fileName + ".json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        closeSaveModal();
+        alert(`✅ สร้างไฟล์เซฟสำเร็จ!\nไฟล์ชื่อ "${a.download}" ถูกเก็บไว้ในโฟลเดอร์ Download ของคุณแล้วครับ`);
+    }
+
+    // 4. สั่งเปิดหน้าต่างให้เลือกไฟล์ (Load)
+    function triggerLoadSave() {
+        if(confirm("⚠️ คำเตือน: การโหลดไฟล์เซฟเก่า จะลบทับข้อมูลปัจจุบันในแอปและบน Cloud ของคุณทั้งหมด!\n\nคุณแน่ใจหรือไม่ว่าต้องการกู้คืนข้อมูลจากไฟล์เซฟ?")) {
+            document.getElementById("loadSaveInput").click();
+        }
+    }
+
+    // 5. อ่านไฟล์เซฟที่เลือกมา และเขียนทับระบบ
+    function handleLoadSave(event) {
+        let file = event.target.files[0];
+        if (!file) return;
+
+        let reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                // แกะกล่องข้อมูลจากไฟล์เซฟ
+                let loadedData = JSON.parse(e.target.result);
+                
+                // เช็คว่าไฟล์ที่เอามาใส่ใช่ไฟล์ของเว็บเราจริงๆ ไหม
+                if (loadedData.folders !== undefined && loadedData.tags !== undefined) {
+                    folders = loadedData.folders;
+                    tags = loadedData.tags;
+                    
+                    // บังคับเซฟลง Cloud เพื่อให้ Cloud ถูกทับด้วยข้อมูลจากเซฟตัวนี้
+                    save(); 
+                    render(); // วาดหน้าจอใหม่
+                    
+                    alert("✅ โหลดไฟล์เซฟและกู้คืนข้อมูลสำเร็จ!\nระบบได้อัปโหลดไฟล์เซฟนี้ขึ้นไปแทนที่บน Cloud เรียบร้อยแล้ว");
+                } else {
+                    alert("❌ ไฟล์เซฟไม่ถูกต้องหรือเสียหาย! กรุณาใช้ไฟล์ที่โหลดจากระบบนี้เท่านั้น");
+                }
+            } catch (err) {
+                alert("❌ เกิดข้อผิดพลาดในการอ่านไฟล์!\n" + err.message);
+            }
+            // ล้างค่าเพื่อให้สามารถกดโหลดไฟล์เดิมซ้ำได้ในอนาคต
+            document.getElementById("loadSaveInput").value = "";
+        };
+        reader.readAsText(file);
+    }
 
     window.onload = () => {
     // 1. อะไรที่เกี่ยวกับการดึงข้อมูลจากฐานข้อมูล ลบทิ้งให้หมด!
