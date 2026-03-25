@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flashcard (Ultimate Edition) - Cloud Synced & Upgraded</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <style>
         /* --- CSS หลัก --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f8; padding: 20px; color: #333; line-height: 1.6; }
@@ -11,268 +14,137 @@
         
         #menuBtn { position: fixed; top: 12px; left: 15px; font-size: 26px; cursor: pointer; z-index: 1001; background: white; padding: 5px 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         #sidebar { position: fixed; top: 0; left: -260px; width: 260px; height: 100%; background: white; box-shadow: 5px 0 25px rgba(0,0,0,0.2); transition: 0.25s; z-index: 1002; padding-top: 20px; }
-        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; z-index: 1000; }
-        .menuItem { padding: 14px 20px; cursor: pointer; font-size: 18px; transition: 0.2s; }
-        .menuItem:hover { background: #f2f2f2; padding-left: 30px; }
-
-        .card { background: white; padding: 30px; margin: 20px 0; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); font-size: 22px; text-align: center; position: relative; }
-        button { padding: 10px 18px; border: none; border-radius: 12px; cursor: pointer; margin: 6px; transition: 0.3s; font-weight: bold; }
-        button:hover { opacity: 0.8; transform: translateY(-2px); }
-        input, textarea, select { padding: 12px; margin: 5px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; }
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); display: none; z-index: 1001; }
         
-        .folder { background: #e0e7ff; padding: 8px 12px; border-radius: 10px; display: inline-block; margin: 5px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .folder:hover { background: #6366f1; color: white; }
+        .sidebar-item { padding: 12px 20px; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: 0.2s; display: flex; align-items: center; gap: 10px; }
+        .sidebar-item:hover { background: #f8fafc; color: #2563eb; }
         
-        .tag-badge { background: #ffe4b5; padding: 5px 12px; border-radius: 15px; margin: 5px; display: inline-flex; align-items: center; font-size: 14px; }
-        .btn-delete-tag { background: #ff4d4d; color: white; border: none; border-radius: 50%; width: 18px; height: 18px; cursor: pointer; margin-left: 8px; font-size: 10px; display: flex; align-items: center; justify-content: center; }
-        .tag-selector-container { background: #fff; border: 1px solid #ddd; padding: 15px; border-radius: 12px; max-height: 150px; overflow-y: auto; text-align: left; margin: 10px 0; }
-        .tag-controls { margin-bottom: 10px; display: flex; gap: 5px; align-items: center; }
+        .card-box { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; margin-bottom: 25px; min-height: 220px; display: flex; flex-direction: column; justify-content: center; cursor: pointer; transition: transform 0.2s; position: relative; }
+        .card-box:active { transform: scale(0.98); }
         
-        hr { border: 0; border-top: 1px solid #ddd; margin: 25px 0; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-primary { background: #2563eb; color: white; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-success { background: #10b981; color: white; }
+        .btn:hover { opacity: 0.9; }
         
-        .drabbable-card { transition: transform 0.1s ease; cursor: grab; }
-        .drabbable-card:active { cursor: grabbing; }
-
-        #calendarGrid{ display:grid; grid-template-columns: repeat(7, 1fr); gap:6px; margin-top:10px; }
-        .dayCell{ background:white; padding:12px; border-radius:10px; box-shadow:0 3px 8px rgba(0,0,0,0.08); min-height:60px; font-size:14px; }
-        .dayHeader{ font-weight:bold; text-align:center; color:#64748b; }
+        #sync-status { font-size: 13px; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; border-radius: 8px; font-weight: bold;}
+        .status-loading { color: #f59e0b; background: #fef3c7;}
+        .status-success { color: #10b981; background: #d1fae5;}
+        .status-error { color: #ef4444; background: #fee2e2;}
+        
+        #loadingScreen { position: fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #2563eb; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        #calendar-container { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-top: 20px; }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 15px; }
+        .cal-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; position: relative; cursor: pointer; background: #f8fafc; }
+        .cal-day:hover { background: #e2e8f0; }
+        .cal-today { border: 2px solid #2563eb; font-weight: bold; background: #eff6ff;}
+        .due-dot { width: 6px; height: 6px; background: #ef4444; border-radius: 50%; position: absolute; bottom: 4px; }
+        
+        #calendarModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-content { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 400px; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2);}
+        
+        .folder-card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); cursor: pointer; transition: 0.2s; border: 1px solid #e2e8f0;}
+        .folder-card:hover { border-color: #2563eb; transform: translateY(-2px);}
+        
+        input[type="text"] { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; box-sizing: border-box; margin-bottom: 10px;}
     </style>
 </head>
 <body>
 
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<div id="loadingScreen">
+    <div class="spinner"></div>
+    <p id="loadingText" style="color: #64748b; font-weight: bold;">กำลังเตรียมความพร้อม...</p>
+</div>
 
 <div id="app-container">
     
-    <div id="syncStatus" style="display:none; position:fixed; top:15px; left:50%; transform:translateX(-50%); padding:8px 20px; border-radius:20px; font-size:14px; font-weight:bold; box-shadow:0 4px 10px rgba(0,0,0,0.2); z-index:9999; transition:0.3s;">
-    </div>
-
-    <div id="auth-controls" style="position: fixed; top: 12px; right: 15px; z-index: 1001; display: flex; align-items: center; gap: 10px;">
-        <span id="userInfo" style="font-size: 14px; font-weight: bold; color: #6366f1; background: white; padding: 5px 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: none;"></span>
-        <button id="logoutBtn" onclick="logout()" style="background: #ea4335; color: white; margin: 0; padding: 8px 15px; display: none;">🚪 ออกจากระบบ</button>
-    </div>
-
-    <div id="loadingScreen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh; text-align: center;">
-        <div style="font-size: 50px; margin-bottom: 10px;">⏳</div>
-        <h2 style="color: #64748b;">กำลังเชื่อมต่อระบบ...</h2>
-    </div>
-
-    <div id="loginPrompt" style="display: none; flex-direction: column; align-items: center; justify-content: center; height: 80vh; text-align: center;">
-        <div style="font-size: 80px; margin-bottom: 10px;">🔒</div>
-        <h1 style="color: #1e293b; margin-bottom: 5px;">Flashcard (Ultimate)</h1>
-        <p style="color: #64748b; font-size: 16px; margin-bottom: 30px;">คุณจำเป็นต้องเข้าสู่ระบบผ่านบัญชี Google ก่อนเริ่มใช้งาน</p>
-        <button onclick="login()" style="background: #4285F4; color: white; padding: 15px 35px; font-size: 18px; border-radius: 12px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(66, 133, 244, 0.4); transition: 0.3s;">
-            🔑 เข้าสู่ระบบด้วย Google
+    <div id="loginPrompt" style="display: none; height: 80vh; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+        <h1 style="font-size: 2.5rem; margin-bottom: 10px;">🎴 Flashcard Cloud</h1>
+        <p style="color: #64748b; margin-bottom: 30px;">เข้าสู่ระบบเพื่อซิงค์ข้อมูลการเรียนของคุณ</p>
+        <button class="btn btn-primary" onclick="login()" style="padding: 15px 40px; font-size: 18px;">
+            ลงชื่อเข้าใช้ด้วย Google
         </button>
     </div>
 
     <div id="main-app-content" style="display: none;">
-        
         <div id="menuBtn" onclick="toggleSidebar()">☰</div>
         <div id="overlay" onclick="toggleSidebar()"></div>
-        <div id="sidebar">
-            <h3 style="padding-left:20px; color:#6366f1;">📚 Flashcard Menu</h3>
-            <div class="menuItem" onclick="goToHome()">🏠 หน้าแรก</div>
-            <div class="menuItem" onclick="openSearchPage()">🔍 ค้นหาขั้นสูง</div>
-            <div class="menuItem" onclick="openCalendar()">📅 ปฏิทิน</div>
-            <div class="menuItem" onclick="openTagManager()">🏷️ จัดการแท็ก</div>
-        </div>
-
-        <div id="homePage">
-            <h1>📚 Flashcard (Ultimate)</h1>
-            
-            <section>
-                <h3>📂 โฟลเดอร์</h3>
-                <div style="display: flex; gap: 5px; flex-wrap: wrap;">
-                    <input id="folderName" placeholder="ชื่อโฟลเดอร์ใหม่" style="flex-grow: 1;">
-                    <button onclick="addFolder()" style="background:#4CAF50; color:white;">สร้างโฟลเดอร์</button>
-                </div>
-                <div id="folders" style="margin-top: 10px;"></div>
-            </section>
-
-            <hr>
-            <h3 id="currentFolder" style="color: #6366f1;">กรุณาเลือกหรือสร้างโฟลเดอร์</h3>
-
-            <div style="background:#fff; padding:20px; border-radius:15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-                <strong style="font-size: 18px;">➕ เพิ่มการ์ดใหม่</strong><br><br>
-                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                    <input id="front" placeholder="คำศัพท์ (ด้านหน้า)" style="width:50%">
-                    <input id="back" placeholder="ความหมาย (ด้านหลัง)" style="width:50%">
-                </div>
-                <div class="tag-selector-container">
-                    <div class="tag-controls">
-                        <strong>ติดแท็ก:</strong>
-                        <button onclick="selectAllTags('multiTagInput')">✅ ทั้งหมด</button>
-                        <button onclick="deselectAllTags('multiTagInput')">❌ ยกเลิก</button>
-                    </div>
-                    <div id="multiTagInput"></div>
-                </div>
-                <button onclick="addCard()" style="background:#2196F3; color:white; width: 100%; padding: 15px; font-size: 16px;">เพิ่มการ์ดลงโฟลเดอร์ (Cloud)</button>
-            </div>
-
-            <div style="background:#eef2ff; padding:20px; border-radius:15px; margin-top: 20px;">
-                <strong>🏷️ สร้างแท็กใหม่ & ระบบเงื่อนไข</strong><br>
-                <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; align-items: center;">
-                    <input id="tagName" placeholder="ชื่อแท็ก" style="width: 150px;">
-                    <input id="tagInterval" type="number" placeholder="วันทบทวน" style="width: 80px;">
-                    
-                    <button onclick="document.getElementById('tagInterval').value = 0" style="background:#3b82f6; color:white; padding:8px 12px; font-size:13px; margin: 5px 0;">📅 ทบทวนวันนี้</button>
-                    
-                    <select id="tagPromote" title="เมื่อทำสำเร็จ"></select>
-                    <select id="tagDemote" title="เมื่อลืม"></select>
-                    <input type="color" id="tagColor" value="#ffe4b5" style="width: 50px; height: 45px; padding: 2px;">
-                    <button onclick="createTag()" style="background:#6366f1; color:white;">✨ สร้างแท็ก</button>
-                </div>
-                <div id="tagList" style="margin-top:15px; display: flex; flex-wrap: wrap;"></div>
-            </div>
-
-            <hr>
-            <section>
-                <h3>📥 นำเข้าแบบรวดเร็ว (Bulk Import)</h3>
-                <textarea id="bulk" rows="4" style="width:100%; border-radius:10px;" placeholder="คำศัพท์ = ความหมาย (หนึ่งบรรทัดต่อหนึ่งใบ)"></textarea>
-                <div style="background: #eee; padding: 15px; border-radius: 15px; margin-top: 10px; text-align: left;">
-                    <span>คั่นกลาง:</span> <select id="sepTerm"><option value="=">=</option><option value="tab">Tab</option><option value="custom">Custom</option></select>
-                    <input id="customSepTerm" placeholder="ตัวคั่น" style="width:70px; display:none;">
-                    <span style="margin-left: 10px;">คั่นใบ:</span> <select id="sepCard"><option value="newline">บรรทัดใหม่</option><option value="custom">Custom</option></select>
-                    <input id="customSepCard" placeholder="ตัวคั่น" style="width:70px; display:none;">
-                    <button onclick="importCards()" style="background:#ff9800; color:white; margin-left: 10px;">📥 เริ่มนำเข้า</button>
-                </div>
-            </section>
-
-            <hr>
-            <div style="text-align: center; margin-bottom: 20px;">
-                <button onclick="startPlayFromHome()" style="background:#10b981; color:white; padding:15px 30px; border-radius:15px; font-size:18px; box-shadow:0 4px 10px rgba(16,185,129,0.3);">▶️ เริ่มเรียนโฟลเดอร์นี้</button>
-                <button onclick="viewCards()" style="background:#6366f1; color:white;">📋 ดูรายการการ์ด</button>
-                <button onclick="toggleShuffle()" id="shuffleBtn" style="background:#eee; color:#444;">🔀 สุ่ม: ปิด</button>
-            </div>
-        </div>
-
-        <div id="list"></div>
-
-        <div id="searchPage" style="display:none; padding-bottom:100px;">
-        <div id="playSearchBtnContainer" style="display:none; margin-bottom: 15px;">
-            <button onclick="startPlaySearch()" style="width:100%; background:#10b981; color:white; padding:15px; border-radius:15px; border:none; cursor:pointer; font-weight:bold; font-size:18px;">
-                ▶️ เริ่มเรียน (เฉพาะใบในหน้านี้)
-            </button>
-        </div>
         
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2 style="color:#1e293b; margin:0;">🔍 ค้นหาขั้นสูง</h2>
-            <button onclick="goToHome()" style="background: #64748b; color: white; padding: 8px 15px; border-radius: 8px; border:none;">❌ ปิด</button>
+        <div id="sidebar">
+            <div class="sidebar-item" onclick="showPage('home')">🏠 หน้าแรก</div>
+            <div class="sidebar-item" onclick="showPage('calendar')">📅 ปฏิทินทบทวน</div>
+            <div class="sidebar-item" onclick="showPage('manage')">⚙️ จัดการโฟลเดอร์</div>
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 10px 0;">
+            <div id="userInfo" style="padding: 10px 20px; font-size: 13px; color: #64748b; font-weight: bold;"></div>
+            <div class="sidebar-item" onclick="logout()" style="color: #ef4444;">🚪 ออกจากระบบ</div>
         </div>
 
-        <div style="background:white; padding:20px; border-radius:15px; box-shadow:0 4px 12px rgba(0,0,0,0.05); margin-bottom:20px;">
-            <input id="advSearchInput" oninput="executeAdvancedSearch()" placeholder="ค้นหาคำศัพท์..." style="width:100%; box-sizing:border-box; margin-bottom:15px; font-size:18px; padding:12px; border-radius:10px; border:2px solid #e2e8f0;">
-            
-            <select id="advFolderFilter" onchange="executeAdvancedSearch()" style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid #cbd5e1;">
-                <option value="all">-- ค้นหาทุกโฟลเดอร์ --</option>
-            </select>
+        <div id="sync-status"></div>
 
-            <div id="searchTagFilters" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px;"></div>
-        </div>
+        <div id="page-home">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 id="folderTitle">เลือกโฟลเดอร์เพื่อเริ่มทบทวน</h2>
+                <div id="cardCounter" style="font-weight: bold; color: #64748b;"></div>
+            </div>
 
-        <div id="searchBulkControls" style="margin-bottom:15px; gap:10px; display: flex;">
-            <button onclick="selectAllSearchCards(true)" style="background:#6366f1; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:14px;">✅ เลือกทั้งหมดในหน้านี้</button>
-            <button onclick="selectAllSearchCards(false)" style="background:#cbd5e1; color:#1e293b; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:14px;">🔄 ยกเลิกการเลือก</button>
-        </div>
+            <div id="folderSelection" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;"></div>
 
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-            <div id="searchResultsCount" style="font-weight: bold; color: #1e293b;"></div>
-            <select id="itemsPerPageSelect" onchange="changeItemsPerPage()" style="padding:5px 10px; border-radius:8px; border:1px solid #cbd5e1;">
-                <option value="10">10 ใบ</option>
-                <option value="20" selected>20 ใบ</option>
-                <option value="50">50 ใบ</option>
-                <option value="all">ทั้งหมด</option>
-            </select>
-        </div>
-
-        <div id="advSearchResult"></div>
-        <div id="searchPagination" style="display:flex; justify-content:center; gap:8px; margin-top:25px; flex-wrap:wrap;"></div>
-
-        <div id="searchBulkActionOuter" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); width:90%; max-width:700px; background:#1e293b; color:white; padding:15px; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.3); z-index:2000;">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                <span id="searchSelectedCount">เลือกแล้ว 0 ใบ</span>
-                <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                    <button onclick="copyFormattedExport()" style="background:#8b5cf6; border:none; color:white; padding:8px 12px; border-radius:8px; cursor:pointer;">📋 ส่งออก (A=B*)</button>
-                    <button onclick="openBulkTagModal()" style="background:#10b981; border:none; color:white; padding:8px 12px; border-radius:8px; cursor:pointer;">🏷️ จัดการแท็ก</button>
-                    <button onclick="deleteSelectedFromSearch()" style="background:#ef4444; border:none; color:white; padding:8px 12px; border-radius:8px; cursor:pointer;">🗑️ ลบที่เลือก</button>
+            <div id="cardDisplay" style="display: none;">
+                <div class="card-box" onclick="flipCard()">
+                    <div id="cardContent" style="font-size: 28px; font-weight: bold;"></div>
+                    <div id="cardHint" style="margin-top: 20px; color: #94a3b8; font-size: 14px;">คลิกเพื่อดูคำตอบ</div>
                 </div>
-            </div>
-        </div>
-        </div>
 
-        <div id="tagManagerPage" style="display:none; padding-bottom:80px;">
-            <h2 style="color:#1e293b;">🏷️ ตั้งค่าเงื่อนไขแท็ก</h2>
-            <p style="color:#64748b; font-size:13px; margin-bottom:15px;">กำหนดการเปลี่ยนแท็กอัตโนมัติเมื่อทบทวนเสร็จ หรือเมื่อลืมทบทวน</p>
-            <div id="tagEditorList"></div>
-            <button onclick="goToHome()" style="margin-top:20px; width:100%; background:#64748b; color:white; padding:12px; border-radius:10px; border:none; cursor:pointer; font-weight:bold;">⬅️ ปิดหน้าจัดการแท็ก</button>
-        </div>
-
-        <div id="calendarPage" style="display:none; padding-bottom:50px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <button onclick="prevMonth()" style="background:#eee; padding:10px 15px;">◀</button>
-                <span id="monthTitle" style="font-weight:bold;font-size:20px;"></span>
-                <button onclick="nextMonth()" style="background:#eee; padding:10px 15px;">▶</button>
-            </div>
-            <div id="calendarGrid"></div>
-            <button onclick="goToHome()" style="margin-top:20px; width:100%; background:#64748b; color:white; padding:12px; border-radius:10px; border:none; cursor:pointer; font-weight:bold;">⬅️ ปิดหน้าปฏิทิน</button>
-        </div>
-
-        <div id="calendarModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; justify-content:center; align-items:center;">
-            <div style="background:white; width:90%; max-width:500px; border-radius:20px; padding:20px; max-height:80vh; overflow-y:auto; position:relative;">
-                <h3 id="modalDateTitle" style="margin-top:0; color:#6366f1;">📅 รายการทบทวน</h3>
-                <div id="modalCardList"></div>
-                <button onclick="closeModal()" style="width:100%; background:#64748b; color:white; margin-top:15px; padding:12px; border-radius:10px; border:none; cursor:pointer;">ปิดหน้าต่าง</button>
-            </div>
-        </div>
-
-        <div id="bulkTagModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:3000; justify-content:center; align-items:center;">
-            <div style="background:white; width:90%; max-width:400px; border-radius:20px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
-                <h3 style="margin-top:0; color:#1e293b;">🏷️ เลือกแท็กที่ต้องการเพิ่ม</h3>
-                <p style="font-size:12px; color:#64748b; margin-bottom:10px;">สามารถเลือกได้หลายแท็กพร้อมกัน</p>
-                <div id="bulkTagCheckboxes" style="max-height:250px; overflow-y:auto; margin-bottom:15px; display:flex; flex-direction:column; gap:8px; text-align:left;">
-                    </div>
-                <div style="display:flex; gap:10px;">
-                    <button onclick="applyBulkTags()" style="flex-grow:1; background:#10b981; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold;">✅ ยืนยันเพิ่มแท็ก</button>
-                    <button onclick="closeBulkTagModal()" style="background:#ef4444; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold;">❌ ยกเลิก</button>
+                <div id="actionButtons" style="display: none; justify-content: center; gap: 15px;">
+                    <button class="btn btn-danger" onclick="answer(1)">🔴 จำไม่ได้</button>
+                    <button class="btn btn-primary" onclick="answer(3)">🟡 เกือบได้</button>
+                    <button class="btn btn-success" onclick="answer(5)">🟢 จำได้แม่น</button>
                 </div>
             </div>
         </div>
 
-    </div> </div>
+        <div id="page-calendar" style="display: none;">
+            <div id="calendar-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <button onclick="prevMonth()" class="btn btn-primary">◀</button>
+                    <h3 id="calMonthTitle" style="margin: 0;"></h3>
+                    <button onclick="nextMonth()" class="btn btn-primary">▶</button>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-weight: bold; color: #64748b; font-size: 14px;">
+                    <div>อา</div><div>จ</div><div>อ</div><div>พ</div><div>พฤ</div><div>ศ</div><div>ส</div>
+                </div>
+                <div class="cal-grid" id="calendarGrid"></div>
+            </div>
+        </div>
+
+        <div id="page-manage" style="display: none;">
+            <h3>📂 จัดการโฟลเดอร์และเนื้อหา</h3>
+            <div style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="newFolderName" placeholder="ชื่อโฟลเดอร์ใหม่..." style="margin-bottom: 0;">
+                    <button class="btn btn-primary" onclick="addFolder()" style="white-space: nowrap;">+ เพิ่มโฟลเดอร์</button>
+                </div>
+            </div>
+            <div id="folderManageList"></div>
+        </div>
+    </div>
+</div>
+
+<div id="calendarModal">
+    <div class="modal-content">
+        <h3 id="modalDateTitle" style="margin-top: 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">📅 รายการวันที่</h3>
+        <div id="modalCardList"></div>
+        <button class="btn btn-primary" onclick="closeModal()" style="width: 100%; margin-top: 15px;">ปิด</button>
+    </div>
+</div>
 
 <script>
     // ==========================================
-    // 🔥 ระบบแจ้งเตือนสถานะการซิงค์ (UI Status)
-    // ==========================================
-    let syncTimeout;
-    function showSyncStatus(message, type="loading") {
-        const banner = document.getElementById("syncStatus");
-        if (!banner) return;
-        
-        clearTimeout(syncTimeout);
-        banner.style.display = "block";
-        
-        if (type === "loading") {
-            banner.innerHTML = `🔄 ${message}`;
-            banner.style.background = "#eab308"; // สีเหลือง
-            banner.style.color = "#000";
-        } else if (type === "success") {
-            banner.innerHTML = `✅ ${message}`;
-            banner.style.background = "#10b981"; // สีเขียว
-            banner.style.color = "#fff";
-            syncTimeout = setTimeout(() => { banner.style.display = "none"; }, 3000); // หายไปใน 3 วินาที
-        } else if (type === "error") {
-            banner.innerHTML = `❌ ${message}`;
-            banner.style.background = "#ef4444"; // สีแดง
-            banner.style.color = "#fff";
-        }
-    }
-
-    // ==========================================
-    // 🔥 FIREBASE INITIALIZATION & AUTHENTICATION 🔥
+    // 1. การตั้งค่า FIREBASE (แก้ไข API KEY ตามของคุณ)
     // ==========================================
     const firebaseConfig = {
         apiKey: "AIzaSyCmbTUstDsHGQbL_x3Xf3yAjGFgQY5PGwM",
@@ -283,1192 +155,399 @@
         appId: "1:670344460298:web:61284815b9dead7a2947f3",
         measurementId: "G-4WRWLRNEG9"
     };
-    
+
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
 
     // ==========================================
-    // 🌟 ระบบ Sync ข้อมูลความเร็วสูงจาก Add0.1
+    // 🟢 เทคนิคที่ 1: Offline Persistence (เปิดใช้งานระบบจำข้อมูลในเครื่อง)
     // ==========================================
-    let currentUserUid = null;
-
-    // เทคนิคที่ 1: เปิด Offline Persistence (หัวใจของความไว 0.1 วิ)
     db.enablePersistence().catch((err) => {
-        if (err.code == 'failed-precondition') { console.warn("Multiple tabs open, persistence can only be enabled in one tab at a time."); }
-        else if (err.code == 'unimplemented') { console.warn("The current browser does not support persistence."); }
+        if (err.code == 'failed-precondition') {
+            console.warn("⚠️ เปิด Offline Mode ไม่ได้: อาจเปิดหลายแท็บ");
+        } else if (err.code == 'unimplemented') {
+            console.warn("⚠️ เบราว์เซอร์ไม่รองรับ Offline Mode");
+        }
     });
+
     auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
 
-    // ระบบแจ้งเตือนสถานะการซิงค์ (เพื่อให้ผู้ใช้รู้ว่าข้อมูลปลอดภัยแล้ว)
-    function showSyncStatus(msg, type) {
-        let el = document.getElementById("syncStatus");
-        if(!el) {
-            el = document.createElement("div");
-            el.id = "syncStatus";
-            document.body.appendChild(el);
-        }
-        el.innerText = msg;
-        el.style = `position:fixed; top:15px; left:50%; transform:translateX(-50%); z-index:9999; padding:8px 20px; border-radius:20px; font-weight:bold; font-size:14px; display:block;`;
-        if(type === 'loading') { el.style.backgroundColor = '#fef3c7'; el.style.color = '#b45309'; }
-        else if(type === 'success') { el.style.backgroundColor = '#d1fae5'; el.style.color = '#047857'; }
-        else { el.style.backgroundColor = '#fee2e2'; el.style.color = '#b91c1c'; }
-        setTimeout(() => el.style.display = "none", 3000);
+    // ==========================================
+    // ตัวแปร Global ของระบบคุณ
+    // ==========================================
+    let folders = [];
+    let tags = [];
+    let currentFolderIdx = -1;
+    let currentCardIdx = -1;
+    let isFlipped = false;
+    let playing = false;
+    let currentUserUid = null;
+    let calDate = new Date();
+    let pendingCards = [];
+
+    // ==========================================
+    // ฟังก์ชัน Login / Logout
+    // ==========================================
+    function login() {
+        const loadingScreen = document.getElementById("loadingScreen");
+        if (loadingScreen) loadingScreen.style.display = "flex"; 
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).catch(e => {
+            if (loadingScreen) loadingScreen.style.display = "none";
+            alert("Login Error: " + e.message);
+        });
     }
 
-    // ระบบตรวจจับการล็อกอินและสั่งโหลดข้อมูล
-    auth.onAuthStateChanged((user) => {
-        if (user) {
-            currentUserUid = user.uid;
-            document.getElementById("loginPrompt").style.display = "none";
-            document.getElementById("main-app-content").style.display = "block";
-            // สั่งโหลดข้อมูลทันทีที่ยืนยันตัวตนสำเร็จ
-            loadData(user.uid);
-        } else {
-            currentUserUid = null;
-            document.getElementById("loginPrompt").style.display = "flex";
-            document.getElementById("main-app-content").style.display = "none";
-        }
-    });
+    function logout() {
+        auth.signOut().then(() => {
+            localStorage.clear();
+            location.reload();
+        });
+    }
 
-    // เทคนิคที่ 2: Real-time Snapshot (ข้อมูลอัปเดตเองไม่ต้องกด Refresh)
+    // ==========================================
+    // 🟢 เทคนิคที่ 2: ระบบกล้องวงจรปิด (onSnapshot) โหลดเร็วปรื๊ด
+    // ==========================================
     function loadData(uid) {
-        showSyncStatus("กำลังซิงค์ข้อมูล...", "loading");
+        setSyncStatus("กำลังซิงค์ข้อมูล...", "loading");
 
-        // ใช้ onSnapshot เพื่อดึงข้อมูลจาก Cache ก่อน แล้วค่อยอัปเดตจาก Cloud ทีหลัง
+        // เฝ้าดูข้อมูลจาก Cloud และดึงจาก Cache มาโชว์ทันที
         db.collection("users").doc(uid).onSnapshot((doc) => {
             if (doc.exists) {
                 const data = doc.data();
                 folders = data.folders || [];
                 tags = data.tags || [];
                 
-                // สั่ง Render หน้าจอใหม่ด้วยข้อมูลที่เพิ่งซิงค์มา
-                if (typeof renderTagsUI === "function") renderTagsUI();
+                // อัปเดตหน้าจอทันที
+                render(); 
+                if(currentFolderIdx !== -1 && playing) {
+                    // กำลังเล่นการ์ดอยู่ ให้เล่นต่อ
+                } else if(currentFolderIdx !== -1) {
+                    viewCards(currentFolderIdx);
+                }
                 
-                if (doc.metadata.fromCache) {
-                    showSyncStatus("⚡ โหลดจากเครื่อง (Offline)", "success");
+                if(doc.metadata.fromCache) {
+                    setSyncStatus("⚡ โหลดจากเครื่อง (Offline Mode)", "success");
                 } else {
-                    showSyncStatus("☁️ ตรงกับ Cloud แล้ว", "success");
+                    setSyncStatus("☁️ ข้อมูลตรงกับ Cloud แล้ว", "success");
                 }
             } else {
-                showSyncStatus("✅ เริ่มใช้งานครั้งแรก", "success");
+                folders = [];
+                tags = [];
+                render();
+                setSyncStatus("✅ พร้อมใช้งาน (ผู้ใช้ใหม่)", "success");
             }
-        }, error => {
-            console.error(error);
-            showSyncStatus("❌ การเชื่อมต่อมีปัญหา", "error");
+            renderCalendar();
+        }, (error) => {
+            console.error("Error:", error);
+            setSyncStatus("❌ ขาดการเชื่อมต่อ", "error");
         });
     }
 
-    // ฟังก์ชัน Save ที่เชื่อมต่อกับระบบใหม่
-    function save() {
+    // ==========================================
+    // 🟢 เทคนิคที่ 3: Auth Guard (เช็คบัตรก่อนดึงข้อมูล แก้ F5)
+    // ==========================================
+    auth.onAuthStateChanged((user) => {
+        const loadingScreen = document.getElementById("loadingScreen");
+        const loginPrompt = document.getElementById("loginPrompt");
+        const mainAppContent = document.getElementById("main-app-content");
+        const userInfo = document.getElementById("userInfo");
+
+        if (user) {
+            // ล็อกอินแล้ว
+            currentUserUid = user.uid;
+            if(userInfo) userInfo.innerText = "👤 " + user.displayName;
+            
+            if(loadingScreen) loadingScreen.style.display = "none";
+            if(loginPrompt) loginPrompt.style.display = "none";
+            if(mainAppContent) mainAppContent.style.display = "block";
+
+            // สั่งดึงข้อมูลตรงนี้เท่านั้น
+            loadData(user.uid); 
+        } else {
+            // ยังไม่ล็อกอิน
+            currentUserUid = null;
+            if(loadingScreen) loadingScreen.style.display = "none";
+            if(loginPrompt) loginPrompt.style.display = "flex";
+            if(mainAppContent) mainAppContent.style.display = "none";
+        }
+    });
+
+    // ==========================================
+    // ฟังก์ชันบันทึกข้อมูลขึ้น Cloud
+    // ==========================================
+    function saveData() {
         if (!currentUserUid) return;
-        showSyncStatus("กำลังบันทึก...", "loading");
+        setSyncStatus("กำลังบันทึก...", "loading");
+        
         db.collection("users").doc(currentUserUid).set({
             folders: folders,
             tags: tags,
             lastModified: Date.now()
         }, { merge: true }).then(() => {
-            showSyncStatus("☁️ บันทึกสำเร็จ", "success");
+            setSyncStatus("☁️ บันทึกเสร็จสิ้น", "success");
+            renderCalendar();
         }).catch(err => {
-            showSyncStatus("❌ บันทึกไม่สำเร็จ", "error");
+            setSyncStatus("❌ บันทึกไม่สำเร็จ", "error");
+            console.error(err);
         });
     }
-    function saveData() { save(); } // เผื่อเรียกใช้ชื่อเดิม
-    
 
-    auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+    function setSyncStatus(text, statusClass) {
+        const el = document.getElementById("sync-status");
+        if(!el) return;
+        el.innerText = text;
+        el.className = `status-${statusClass}`;
+    }
 
-    auth.getRedirectResult().catch(error => {
-        console.error("Redirect Error:", error);
-    });
-
-    function login() {
-        const loadingScreen = document.getElementById("loadingScreen");
-        if (loadingScreen) loadingScreen.style.display = "flex"; 
-
-        const provider = new firebase.auth.GoogleAuthProvider();
+    // ==========================================
+    // ระบบ UI หน้าจอ (แสดงผลโฟลเดอร์, เมนู)
+    // ==========================================
+    function showPage(pageId) {
+        document.getElementById('page-home').style.display = 'none';
+        document.getElementById('page-calendar').style.display = 'none';
+        document.getElementById('page-manage').style.display = 'none';
+        document.getElementById(`page-${pageId}`).style.display = 'block';
+        toggleSidebar(true);
         
-        provider.setCustomParameters({
-            prompt: 'select_account'
-        });
-
-        auth.signInWithPopup(provider).catch(e => {
-            if (e.code === 'auth/popup-blocked') {
-                auth.signInWithRedirect(provider);
-            } else {
-                if (loadingScreen) loadingScreen.style.display = "none";
-                alert("Login Error: " + e.message);
-            }
-        });
-    }
-
-    function logout() {
-        auth.signOut().then(() => {
-            localStorage.removeItem("folders");
-            localStorage.removeItem("tags");
-            localStorage.removeItem("currentFolderIdx");
-            localStorage.removeItem("lastModified"); 
-            location.reload();
-        });
-    }
-
-    // ==========================================
-    // 🌟 สมองชุดใหม่: ระบบ Sync ความเร็วสูง 0.1 วินาที
-    // ==========================================
-    async function loadData(uid) {
-        try {
-            // 1. ดึงจากความจำเครื่อง (Cache) มาโชว์ก่อนทันที
-            let localFolders = JSON.parse(localStorage.getItem("folders")) || [];
-            let localTags = JSON.parse(localStorage.getItem("tags")) || [];
-            let localModified = parseInt(localStorage.getItem("lastModified")) || 0;
-
-            if (localFolders.length > 0) {
-                folders = localFolders;
-                tags = localTags;
-                lastModified = localModified;
-                render(); 
-                if (typeof renderTagsUI === "function") renderTagsUI();
-                console.log("⚡ ข้อมูลจากเครื่องแสดงผลแล้วใน 0.1 วินาที");
-            }
-
-            // 2. เชื่อมต่อระบบ Real-time (Snapshot) - ข้อมูลจะอัปเดตเองเมื่อ Cloud เปลี่ยน
-            const docRef = db.collection("users").doc(uid);
-            docRef.onSnapshot((doc) => {
-                if (doc.exists) {
-                    const data = doc.data();
-                    const cloudModified = data.lastModified || 0;
-
-                    // ถ้าข้อมูลบน Cloud ใหม่กว่าในเครื่อง ให้เปลี่ยนตาม Cloud ทันที
-                    if (cloudModified > lastModified) {
-                        folders = data.folders || [];
-                        tags = data.tags || [];
-                        lastModified = cloudModified;
-
-                        // เซฟลงเครื่องไว้ใช้ครั้งหน้า
-                        localStorage.setItem("folders", JSON.stringify(folders));
-                        localStorage.setItem("tags", JSON.stringify(tags));
-                        localStorage.setItem("lastModified", lastModified);
-
-                        render();
-                        if (typeof renderTagsUI === "function") renderTagsUI();
-                        showSyncStatus("☁️ ซิงค์ข้อมูลล่าสุดเรียบร้อย", "success");
-                    }
-                } else {
-                    // ถ้าเป็นผู้ใช้ใหม่ ยังไม่มีข้อมูลบน Cloud
-                    saveData(); 
-                }
-            });
-
-        } catch (e) {
-            console.error("Load Error:", e);
-            showSyncStatus("❌ โหลดข้อมูลไม่สำเร็จ", "error");
-        }
-    }
-
-    // ฟังก์ชันสำหรับบันทึกข้อมูล (อัปเกรดให้มี Timestamp)
-    function saveData() {
-        if (!currentUserUid) return;
-        lastModified = Date.now();
-        localStorage.setItem("folders", JSON.stringify(folders));
-        localStorage.setItem("tags", JSON.stringify(tags));
-        localStorage.setItem("lastModified", lastModified);
-
-        db.collection("users").doc(currentUserUid).set({
-            folders: folders,
-            tags: tags,
-            lastModified: lastModified
-        }, { merge: true }).then(() => {
-            showSyncStatus("☁️ บันทึกขึ้น Cloud แล้ว", "success");
-        });
-    }
-
-    // ==========================================
-    // 🛡️ ระบบจัดการการเข้าถึงและการดึงข้อมูล 
-    // ==========================================
-    auth.onAuthStateChanged(async (user) => {
-        const logoutBtn = document.getElementById("logoutBtn");
-        const userInfo = document.getElementById("userInfo");
-        const loginPrompt = document.getElementById("loginPrompt");
-        const mainAppContent = document.getElementById("main-app-content");
-        const loadingScreen = document.getElementById("loadingScreen");
-
-        if (user) {
-            currentUserUid = user.uid;
-            
-            if(logoutBtn) logoutBtn.style.display = "inline-block";
-            if(userInfo) {
-                userInfo.style.display = "inline-block";
-                userInfo.innerText = "👤 " + user.displayName;
-            }
-            
-            if(loginPrompt) loginPrompt.style.display = "none";
-            if(mainAppContent) mainAppContent.style.display = "block";
-            if(loadingScreen) loadingScreen.style.display = "none";
-
-            console.log("🔐 สิทธิ์การเข้าถึงถูกต้อง: กำลังเริ่มดึงข้อมูล...");
-            await loadData(user.uid); 
-            
-        } else {
-            currentUserUid = null;
-            if(loadingScreen) loadingScreen.style.display = "none";
-            if(loginPrompt) loginPrompt.style.display = "flex";
-            if(mainAppContent) mainAppContent.style.display = "none";
-            
-            folders = [];
-            tags = [];
+        if(pageId === 'home') {
+            document.getElementById('folderSelection').style.display = 'grid';
+            document.getElementById('cardDisplay').style.display = 'none';
+            document.getElementById('folderTitle').innerText = "เลือกโฟลเดอร์เพื่อเริ่มทบทวน";
+            document.getElementById('cardCounter').innerText = "";
+            currentFolderIdx = -1;
+            playing = false;
             render();
-        }
-    });
-
-    // ==========================================
-    // 1. GLOBAL STATES & MASTER SAVE FUNCTION
-    // ==========================================
-    let folders = [];
-    let tags = [];
-    let current = localStorage.getItem("currentFolderIdx") !== null ? parseInt(localStorage.getItem("currentFolderIdx")) : -1;
-    let lastModified = Date.now(); 
-    
-    let sessionCards = []; 
-    let currentIdx = 0;
-    let isShowingAnswer = false;
-    let shuffleMode = false;
-    let playing = false;
-
-    let itemsPerSubDeck = 20; 
-    let currentSubDeckPage = 0; 
-    let draggedItemIndex = null;
-    let selectedSearchTags = [];
-    let filteredCardsForPlay = [];
-    let sidebarOpen = false;
-    let calDate = new Date();
-
-    function save() {
-        lastModified = Date.now(); 
-        localStorage.setItem("lastModified", lastModified);
-        localStorage.setItem("folders", JSON.stringify(folders));
-        localStorage.setItem("tags", JSON.stringify(tags));
-        if (current !== -1) localStorage.setItem("currentFolderIdx", current);
-
-        if (currentUserUid) {
-            let dataString = JSON.stringify({folders: folders, tags: tags});
-            let dataSizeMB = (new Blob([dataString]).size) / 1024 / 1024;
-            
-            showSyncStatus("กำลังอัปโหลดขึ้น Cloud...", "loading");
-
-            db.collection("users").doc(currentUserUid).set({
-                folders: folders,
-                tags: tags,
-                lastModified: lastModified
-            }, { merge: true })
-            .then(() => {
-                console.log("☁️ บันทึกขึ้น Cloud สำเร็จ (" + dataSizeMB.toFixed(2) + " MB)");
-                showSyncStatus("บันทึกขึ้น Cloud แล้ว!", "success");
-            })
-            .catch(e => {
-                console.error("Cloud Save Error:", e);
-                showSyncStatus("อัปโหลดล้มเหลว", "error"); 
-                alert("❌ เซิร์ฟเวอร์ Firebase ปฏิเสธการบันทึกข้อมูล! อาจเพราะเน็ตเวิร์คมีปัญหา ข้อมูลถูกเก็บไว้ในเครื่องคุณเรียบร้อยแล้ว");
-            });
+        } else if (pageId === 'calendar') {
+            renderCalendar();
+        } else if (pageId === 'manage') {
+            renderManageView();
         }
     }
 
-    // 2. NAVIGATION
-    function toggleSidebar() {
-        sidebarOpen = !sidebarOpen;
-        document.getElementById("sidebar").style.left = sidebarOpen ? "0px" : "-260px";
-        document.getElementById("overlay").style.display = sidebarOpen ? "block" : "none";
+    function toggleSidebar(forceClose = false) {
+        const sidebar = document.getElementById("sidebar");
+        const overlay = document.getElementById("overlay");
+        if (forceClose || sidebar.style.left === "0px") {
+            sidebar.style.left = "-260px";
+            overlay.style.display = "none";
+        } else {
+            sidebar.style.left = "0px";
+            overlay.style.display = "block";
+        }
     }
 
-    function hideAllPages() {
-        document.getElementById("homePage").style.display = "none";
-        document.getElementById("calendarPage").style.display = "none";
-        document.getElementById("searchPage").style.display = "none";
-        document.getElementById("tagManagerPage").style.display = "none";
-        document.getElementById("list").style.display = "none";
-    }
-
-    function goToHome() {
-        if (sidebarOpen) toggleSidebar();
-        hideAllPages();
-        document.getElementById("homePage").style.display = "block";
-        document.getElementById("list").style.display = "block"; 
-        playing = false;
-        render();
-    }
-
-    function openSearchPage() {
-        if (sidebarOpen) toggleSidebar();
-        hideAllPages();
-        document.getElementById("searchPage").style.display = "block";
-        selectedSearchTags = [];
-        document.getElementById("advSearchInput").value = "";
-        
-        let fFilter = document.getElementById("advFolderFilter");
-        fFilter.innerHTML = `<option value="all">-- ค้นหาทุกโฟลเดอร์ --</option>` + 
-                            folders.map((f, i) => `<option value="${f.name}">${f.name}</option>`).join("");
-
-        renderSearchTagFilters();
-        executeAdvancedSearch(); 
-    }
-
-    function openCalendar() {
-        if (sidebarOpen) toggleSidebar();
-        hideAllPages();
-        document.getElementById("calendarPage").style.display = "block";
-        renderCalendar();
-    }
-
-    function openTagManager() {
-        if (sidebarOpen) toggleSidebar();
-        hideAllPages();
-        document.getElementById("tagManagerPage").style.display = "block";
-        renderTagManagerList();
-    }
-
-    // 3. FOLDERS & CARDS CREATION
     function render() {
-        let folderDiv = document.getElementById("folders");
-        folderDiv.innerHTML = "";
+        const sel = document.getElementById("folderSelection");
+        sel.innerHTML = "";
         folders.forEach((f, i) => {
-            let div = document.createElement("div");
-            div.className = "folder";
-            if (i === current) { div.style.background = "#6366f1"; div.style.color = "white"; }
-            div.innerHTML = `${f.name} (${f.cards.length})`;
-            div.onclick = () => selectFolder(i);
+            let dueCount = 0;
+            const now = new Date().getTime();
+            f.cards.forEach(c => {
+                if(new Date(c.due).getTime() <= now) dueCount++;
+            });
             
-            let delBtn = document.createElement("span");
-            delBtn.innerHTML = " ×"; delBtn.style.marginLeft = "10px"; delBtn.style.cursor = "pointer";
-            delBtn.onclick = (e) => {
-                e.stopPropagation();
-                if(confirm(`ลบโฟลเดอร์ "${f.name}" และการ์ดทั้งหมดด้านใน?`)) {
-                    folders.splice(i, 1); current = -1; save(); render();
-                }
-            };
-            div.appendChild(delBtn);
-            folderDiv.appendChild(div);
+            sel.innerHTML += `
+                <div class="folder-card" onclick="viewCards(${i})">
+                    <h3 style="margin: 0 0 10px 0; color: #1e293b;">📂 ${f.name}</h3>
+                    <p style="margin: 0; font-size: 14px; color: #64748b;">การ์ดทั้งหมด: ${f.cards.length}</p>
+                    ${dueCount > 0 ? `<div style="margin-top: 10px; color: white; background: #ef4444; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; font-weight: bold;">ต้องทบทวน: ${dueCount}</div>` : `<div style="margin-top: 10px; color: #10b981; font-size: 12px; font-weight: bold;">✔️ ทบทวนครบแล้ว</div>`}
+                </div>
+            `;
         });
-        
-        if (current !== -1 && folders[current]) {
-            document.getElementById("currentFolder").innerText = `📂 กำลังดู: ${folders[current].name}`;
-            if(!playing) viewCards();
-        } else {
-            document.getElementById("list").innerHTML = "";
-            document.getElementById("currentFolder").innerText = `กรุณาเลือกหรือสร้างโฟลเดอร์`;
-        }
-        renderTagInputs();
+        renderManageView();
     }
 
+    // ==========================================
+    // ระบบการเล่นการ์ด (Spaced Repetition)
+    // ==========================================
+    function viewCards(fIndex) {
+        currentFolderIdx = fIndex;
+        document.getElementById("folderSelection").style.display = "none";
+        document.getElementById("cardDisplay").style.display = "block";
+        document.getElementById("folderTitle").innerText = `กำลังทบทวน: ${folders[fIndex].name}`;
+        
+        playing = true;
+        const now = new Date().getTime();
+        pendingCards = folders[fIndex].cards.filter(c => new Date(c.due).getTime() <= now);
+        
+        showNextCard();
+    }
+
+    function showNextCard() {
+        if (pendingCards.length === 0) {
+            document.getElementById("cardContent").innerText = "🎉 ยินดีด้วย!";
+            document.getElementById("cardHint").innerText = "คุณทบทวนโฟลเดอร์นี้ครบแล้วในวันนี้";
+            document.getElementById("actionButtons").style.display = "none";
+            document.getElementById("cardCounter").innerText = "";
+            return;
+        }
+
+        const card = pendingCards[0];
+        document.getElementById("cardContent").innerText = card.front;
+        document.getElementById("cardHint").innerText = "คลิกเพื่อดูคำตอบ";
+        document.getElementById("actionButtons").style.display = "none";
+        document.getElementById("cardCounter").innerText = `เหลืออีก ${pendingCards.length} ใบ`;
+        isFlipped = false;
+    }
+
+    function flipCard() {
+        if (pendingCards.length === 0 || isFlipped) return;
+        isFlipped = true;
+        document.getElementById("cardContent").innerText = pendingCards[0].back;
+        document.getElementById("cardHint").innerText = "เลือกความแม่นยำของคุณ";
+        document.getElementById("actionButtons").style.display = "flex";
+    }
+
+    function answer(score) {
+        let card = pendingCards.shift();
+        
+        // อัลกอริทึมคำนวณวันถัดไปอย่างง่าย (คล้าย SuperMemo)
+        if (score === 1) {
+            card.interval = 0;
+            card.repetition = 0;
+            card.due = new Date().getTime(); // ต้องทบทวนใหม่วันนี้เลย
+            pendingCards.push(card); // เอาไปต่อท้ายคิว
+        } else {
+            if (card.repetition === 0) {
+                card.interval = 1;
+            } else if (card.repetition === 1) {
+                card.interval = 3;
+            } else {
+                card.interval = Math.round(card.interval * (score === 5 ? 2.5 : 1.5));
+            }
+            card.repetition++;
+            card.due = new Date().getTime() + (card.interval * 24 * 60 * 60 * 1000);
+        }
+
+        saveData(); // บันทึกการเปลี่ยนแปลงขึ้น Cloud
+        showNextCard();
+    }
+
+    // ==========================================
+    // ระบบจัดการโฟลเดอร์และการ์ด
+    // ==========================================
     function addFolder() {
-        let name = document.getElementById("folderName").value.trim();
-        if (!name) return;
-        folders.push({ name: name, cards: [] });
-        document.getElementById("folderName").value = "";
-        save(); render();
+        const name = document.getElementById("newFolderName").value;
+        if (name) {
+            folders.push({ name: name, cards: [] });
+            document.getElementById("newFolderName").value = "";
+            saveData();
+        }
     }
 
-    function selectFolder(i) {
-        current = i; currentSubDeckPage = 0; playing = false; save(); render();
+    function deleteFolder(index) {
+        if (confirm("คุณแน่ใจหรือไม่ที่จะลบโฟลเดอร์นี้และคำศัพท์ทั้งหมดข้างใน?")) {
+            folders.splice(index, 1);
+            saveData();
+        }
     }
 
-    function addCard() {
-        if (current === -1) return alert("กรุณาเลือกโฟลเดอร์ก่อนครับ");
-        let f = document.getElementById("front").value.trim();
-        let b = document.getElementById("back").value.trim();
-        if (!f || !b) return alert("กรุณากรอกทั้งคำศัพท์และคำแปล");
-        
-        let selectedTags = Array.from(document.querySelectorAll("#multiTagInput input:checked")).map(cb => cb.value);
-        let firstTagObj = tags.find(t => t.name === selectedTags[0]);
-        let interval = firstTagObj ? Number(firstTagObj.interval) : 0; 
+    function addCard(fIndex) {
+        const front = prompt("คำถาม (ด้านหน้า):");
+        if (!front) return;
+        const back = prompt("คำตอบ (ด้านหลัง):");
+        if (!back) return;
 
-        folders[current].cards.push({
-            front: f, back: b, tag: selectedTags,
-            due: Date.now() + (interval * 86400000), 
-            show: false, sessionDone: false
+        folders[fIndex].cards.push({
+            front: front,
+            back: back,
+            due: new Date().getTime(),
+            interval: 0,
+            repetition: 0
         });
-        document.getElementById("front").value = ""; document.getElementById("back").value = "";
-        save(); viewCards();
+        saveData();
     }
 
-    // 4. VIEW CARDS & DRAG/DROP
-    function changeSetLimit() {
-        itemsPerSubDeck = parseInt(document.getElementById("setLimitSelect").value);
-        currentSubDeckPage = 0;
-        viewCards();
-    }
-
-    function viewCards() {
-        if (!folders[current] || folders[current].cards.length === 0) {
-            document.getElementById("list").innerHTML = "<p style='text-align:center; color:gray;'>ยังไม่มีการ์ดในโฟลเดอร์นี้</p>";
-            return;
-        }
-        
-        playing = false;
-        let allCards = folders[current].cards;
-        let totalCards = allCards.length;
-        let totalSubDecks = Math.ceil(totalCards / itemsPerSubDeck);
-
-        let subDeckHTML = `<div style="margin-bottom:15px; display:flex; gap:5px; flex-wrap:wrap; justify-content:center;">`;
-        for(let i = 0; i < totalSubDecks; i++) {
-            let start = (i * itemsPerSubDeck) + 1;
-            let end = Math.min((i + 1) * itemsPerSubDeck, totalCards);
-            let isActive = currentSubDeckPage === i;
-            subDeckHTML += `
-                <button onclick="changeSubDeck(${i})" 
-                        style="background:${isActive ? '#6366f1' : '#eee'}; color:${isActive ? 'white' : '#333'}; padding:5px 12px; font-size:12px; border-radius:8px; border:none; cursor:pointer; transition:0.2s;">
-                    📦 ชุดที่ ${i+1} (${start}-${end})
-                </button>`;
-        }
-        subDeckHTML += `</div>`;
-
-        let startIdx = currentSubDeckPage * itemsPerSubDeck;
-        let visibleCards = allCards.slice(startIdx, startIdx + itemsPerSubDeck);
-
-        let html = `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
-                <h3 style="margin:0;">📂 ${folders[current].name} (${totalCards} คำ)</h3>
-                
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <select id="setLimitSelect" onchange="changeSetLimit()" style="padding:6px; border-radius:8px;">
-                        <option value="10" ${itemsPerSubDeck==10?'selected':''}>แบ่ง 10 คำ</option>
-                        <option value="20" ${itemsPerSubDeck==20?'selected':''}>แบ่ง 20 คำ</option>
-                        <option value="50" ${itemsPerSubDeck==50?'selected':''}>แบ่ง 50 คำ</option>
-                        <option value="999999" ${itemsPerSubDeck==999999?'selected':''}>แสดงทั้งหมด</option>
-                    </select>
-                    <button onclick="selectAllVisible(true)" style="background:#f1f5f9; font-size:12px; padding:6px 12px; border:1px solid #e2e8f0; border-radius:8px; cursor:pointer;">✅ เลือกทั้งหมดในหน้านี้</button>
-                    <button onclick="selectAllVisible(false)" style="background:#f1f5f9; font-size:12px; padding:6px 12px; border:1px solid #e2e8f0; border-radius:8px; cursor:pointer;">❌ ยกเลิก</button>
-                </div>
-            </div>
-            
-            ${subDeckHTML}
-
-            <div id="bulkControl" style="background:#1e293b; color:white; padding:15px; border-radius:15px; margin-bottom:20px; display:none;">
-                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-                    <span>เลือกอยู่ <b id="countSelect" style="color:#fbbf24;">0</b> ใบ</span>
-                    <div style="display:flex; gap:8px;">
-                        <button onclick="bulkDelete()" style="background:#ef4444; color:white; padding:8px 12px; border-radius:8px; border:none; cursor:pointer;">🗑️ ลบที่เลือก</button>
-                        <select id="bulkTagTarget" style="padding:8px; border-radius:8px; border:none; color:black;"></select>
-                        <button onclick="bulkAddTag()" style="background:#6366f1; color:white; padding:8px 12px; border-radius:8px; border:none; cursor:pointer;">🏷️ เพิ่มแท็ก</button>
+    function renderManageView() {
+        const list = document.getElementById("folderManageList");
+        if(!list) return;
+        list.innerHTML = "";
+        folders.forEach((f, i) => {
+            let cardsHtml = "";
+            f.cards.forEach((c, cIdx) => {
+                cardsHtml += `
+                    <div style="display:flex; justify-content:space-between; background:#f8fafc; padding:8px; margin-top:5px; border-radius:6px; font-size:14px;">
+                        <span>Q: ${c.front} | A: ${c.back}</span>
+                        <button onclick="deleteCard(${i}, ${cIdx})" style="color:red; background:none; border:none; cursor:pointer;">ลบ</button>
                     </div>
-                </div>
-            </div>
-            <div id="dragContainer">`;
-
-        visibleCards.forEach((c, i) => {
-            let actualIndex = startIdx + i;
-            let dueDateDisplay = "ไม่ได้กำหนด";
-            if (c.due) {
-                let d = new Date(c.due);
-                dueDateDisplay = `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
-            }
-
-            html += `
-                <div class="card drabbable-card" draggable="true" data-index="${actualIndex}"  
-                     ondragstart="handleDragStart(event)" ondragover="handleDragOver(event)" ondrop="handleDrop(event)" ondragend="handleDragEnd(event)"
-                     style="text-align: left; display:flex; align-items:flex-start; gap:15px; margin: 10px 0; border-left: 5px solid #6366f1; padding:20px;">
-                    
-                    <div style="color: #cbd5e1; font-size: 20px; cursor: grab; padding-top:2px;">⋮⋮</div>
-                    <input type="checkbox" class="card-select" value="${actualIndex}" onchange="updateBulkBar()" style="width:20px; height:20px; cursor:pointer; margin-top:5px;">
-                    
-                    <div style="flex-grow:1; pointer-events: none;">
-                        <div style="display: flex; justify-content: space-between; align-items:center;">
-                            <strong style="font-size:18px; color:#1e293b;">#${actualIndex + 1} ${c.front}</strong>
-                            <div style="text-align:right;">
-                                <span style="font-size: 11px; color: #94a3b8; display:block;">ทบทวนถัดไป</span>
-                                <span style="font-size: 13px; color: #6366f1; font-weight:bold;">${dueDateDisplay}</span>
-                            </div>
-                        </div>
-                        <div style="color: #475569; margin: 8px 0; font-size:16px; line-height:1.4;">${c.back}</div>
-                    </div>
-                    
-                    <button onclick="deleteSingleCard(${actualIndex})" style="background:none; color:#cbd5e1; border:none; cursor:pointer; font-size:18px; transition:0.2s;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#cbd5e1'">🗑️</button>
-                </div>`;
-        });
-
-        html += `</div>`;
-        document.getElementById("list").innerHTML = html;
-        
-        let tagOpts = `<option value="">-- เลือกแท็ก --</option>` + tags.map(t => `<option value="${t.name}">${t.name}</option>`).join("");
-        let bulkSelect = document.getElementById("bulkTagTarget");
-        if(bulkSelect) bulkSelect.innerHTML = tagOpts;
-    }
-
-    function changeSubDeck(pageIndex) { currentSubDeckPage = pageIndex; viewCards(); window.scrollTo(0, 0); }
-    function updateBulkBar() {
-        let checked = document.querySelectorAll('.card-select:checked');
-        document.getElementById("bulkControl").style.display = checked.length > 0 ? "block" : "none";
-        document.getElementById("countSelect").innerText = checked.length;
-    }
-    function selectAllVisible(status) { document.querySelectorAll('.card-select').forEach(cb => cb.checked = status); updateBulkBar(); }
-    function deleteSingleCard(index) { if(!confirm("ลบการ์ดใบนี้?")) return; folders[current].cards.splice(index, 1); save(); viewCards(); }
-    
-    function bulkDelete() {
-        if(!confirm("ลบการ์ดที่เลือกทั้งหมดใช่หรือไม่?")) return;
-        let indexes = Array.from(document.querySelectorAll('.card-select:checked')).map(cb => parseInt(cb.value));
-        indexes.sort((a,b) => b - a).forEach(i => folders[current].cards.splice(i, 1));
-        save(); viewCards();
-    }
-
-    function bulkAddTag() {
-        let tagName = document.getElementById("bulkTagTarget").value;
-        if(!tagName) return alert("กรุณาเลือกแท็กก่อน");
-        
-        let tagObj = tags.find(t => t.name === tagName);
-        let interval = tagObj ? Number(tagObj.interval) : 1;
-
-        let indexes = Array.from(document.querySelectorAll('.card-select:checked')).map(cb => parseInt(cb.value));
-        indexes.forEach(i => {
-            let card = folders[current].cards[i];
-            if(!card.tag) card.tag = [];
-            if(!card.tag.includes(tagName)) {
-                card.tag.push(tagName);
-                card.due = Date.now() + (interval * 86400000); 
-            }
-        });
-        save(); viewCards(); alert(`เพิ่มแท็ก ${tagName} และขยับวันทบทวนไปอีก ${interval} วันแล้ว!`);
-    }
-
-    function handleDragStart(e) { draggedItemIndex = e.currentTarget.getAttribute('data-index'); e.currentTarget.style.opacity = "0.4"; e.dataTransfer.effectAllowed = 'move'; }
-    function handleDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; e.currentTarget.style.borderTop = "3px solid #6366f1"; }
-    function handleDragEnd(e) { e.currentTarget.style.opacity = "1"; document.querySelectorAll('.drabbable-card').forEach(card => card.style.borderTop = "none"); }
-    function handleDrop(e) {
-        e.preventDefault();
-        const targetIndex = e.currentTarget.getAttribute('data-index');
-        if (draggedItemIndex !== targetIndex) {
-            const cards = folders[current].cards;
-            const itemToMove = cards.splice(draggedItemIndex, 1)[0];
-            cards.splice(targetIndex, 0, itemToMove);
-            save(); viewCards();
-        }
-    }
-
-    // 5. TAGS & IMPORT
-    function selectAllTags(id) { document.querySelectorAll(`#${id} input`).forEach(cb => cb.checked = true); }
-    function deselectAllTags(id) { document.querySelectorAll(`#${id} input`).forEach(cb => cb.checked = false); }
-
-    function createTag() {
-        let name = document.getElementById("tagName").value.trim();
-        let intervalVal = document.getElementById("tagInterval").value;
-        let interval = intervalVal !== "" ? parseInt(intervalVal) : 1; 
-        let nextT = document.getElementById("tagPromote").value;
-        let failT = document.getElementById("tagDemote").value;
-        let color = document.getElementById("tagColor").value;
-
-        if (!name) return alert("กรุณาตั้งชื่อแท็ก");
-        if (tags.find(t => t.name === name)) return alert("มีแท็กชื่อนี้อยู่แล้ว");
-
-        tags.push({ name: name, interval: interval, promoteTo: nextT, demoteTo: failT, color: color });
-        document.getElementById("tagName").value = ""; document.getElementById("tagInterval").value = "";
-        save(); renderTagInputs();
-    }
-
-    function renderTagInputs() {
-        let multiDiv = document.getElementById("multiTagInput");
-        if (multiDiv) multiDiv.innerHTML = tags.map(t => `<label><input type="checkbox" value="${t.name}"> <span style="color:${t.color}; font-weight:bold;">${t.name}</span></label>&nbsp;&nbsp;`).join("");
-
-        let pSelect = document.getElementById("tagPromote");
-        let dSelect = document.getElementById("tagDemote");
-        let options = `<option value="">-- ไม่มี --</option>` + tags.map(t => `<option value="${t.name}">${t.name}</option>`).join("");
-        if (pSelect) pSelect.innerHTML = options;
-        if (dSelect) dSelect.innerHTML = options;
-
-        let tagListDiv = document.getElementById("tagList");
-        if (tagListDiv) {
-            tagListDiv.innerHTML = tags.map((t, i) => `
-                <span class="tag-badge" style="background:${t.color}">
-                    ${t.name} (ทุก ${t.interval} วัน) <button class="btn-delete-tag" onclick="deleteTag(${i})">×</button>
-                </span>`).join("");
-        }
-    }
-
-    function deleteTag(i) { if (confirm(`ลบแท็ก "${tags[i].name}"?`)) { tags.splice(i, 1); save(); renderTagInputs(); } }
-
-    function importCards() {
-        if (current === -1) return alert("กรุณาเลือกโฟลเดอร์ก่อนนำเข้า");
-        let text = document.getElementById("bulk").value.trim();
-        if (!text) return;
-        let termSep = document.getElementById("sepTerm").value;
-        if (termSep === "tab") termSep = "\t"; if (termSep === "custom") termSep = document.getElementById("customSepTerm").value;
-        let cardSep = document.getElementById("sepCard").value;
-        if (cardSep === "newline") cardSep = "\n"; if (cardSep === "custom") cardSep = document.getElementById("customSepCard").value;
-        
-        let count = 0;
-        text.split(cardSep).forEach(line => {
-            let parts = line.split(termSep);
-            if (parts.length >= 2) { folders[current].cards.push({ front: parts[0].trim(), back: parts[1].trim(), tag: [], due: Date.now() }); count++; }
-        });
-        alert(`นำเข้าสำเร็จ ${count} ใบ`); document.getElementById("bulk").value = ""; save(); viewCards();
-    }
-
-    document.getElementById("sepTerm")?.addEventListener("change", (e) => { document.getElementById("customSepTerm").style.display = e.target.value === "custom" ? "inline" : "none"; });
-    document.getElementById("sepCard")?.addEventListener("change", (e) => { document.getElementById("customSepCard").style.display = e.target.value === "custom" ? "inline" : "none"; });
-
-    // 6. TAG MANAGER PAGE
-    function renderTagManagerList() {
-        let html = tags.map((t, index) => {
-            let nextOptions = `<option value="">-- ไม่เปลี่ยน --</option>`;
-            let failOptions = `<option value="">-- ไม่เปลี่ยน --</option>`;
-            tags.forEach(other => {
-                if(other.name !== t.name) {
-                    nextOptions += `<option value="${other.name}" ${t.promoteTo === other.name ? 'selected' : ''}>${other.name}</option>`;
-                    failOptions += `<option value="${other.name}" ${t.demoteTo === other.name ? 'selected' : ''}>${other.name}</option>`;
-                }
+                `;
             });
-            return `
-            <div style="background:white; padding:15px; border-radius:15px; box-shadow:0 4px 10px rgba(0,0,0,0.05); margin-bottom:15px; border-left:8px solid ${t.color};">
-                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                    <input type="text" id="editTagName-${index}" value="${t.name}" style="font-weight:bold; border:1px solid #eee; padding:5px; border-radius:5px; width:65%;">
-                    <input type="color" id="editTagColor-${index}" value="${t.color}" style="border:none; background:none; width:30px; height:30px; cursor:pointer;">
-                </div>
-                <div style="background:#f8fafc; padding:10px; border-radius:10px; font-size:13px; margin-bottom:10px;">
-                    <div style="margin-bottom:8px;">
-                        <label>✅ ทบทวนแล้ว เปลี่ยนแท็กเป็น:</label>
-                        <select id="editNextTag-${index}" style="width:100%; padding:5px; border-radius:5px; border:1px solid #cbd5e1;">${nextOptions}</select>
-                    </div>
-                    <div>
-                        <label>⚠️ เลยกำหนด/ลืม เปลี่ยนแท็กเป็น:</label>
-                        <select id="editFailTag-${index}" style="width:100%; padding:5px; border-radius:5px; border:1px solid #cbd5e1;">${failOptions}</select>
-                    </div>
-                </div>
-                <div style="display:flex; gap:10px;">
-                    <button onclick="saveTagSettings(${index})" style="flex-grow:1; background:#10b981; color:white; border:none; padding:8px; border-radius:8px; font-weight:bold;">บันทึก</button>
-                    <button onclick="deleteTagPermanently(${index})" style="background:#fee2e2; color:#ef4444; border:none; padding:8px; border-radius:8px;">🗑️</button>
-                </div>
-            </div>`;
-        }).join("");
-        document.getElementById("tagEditorList").innerHTML = html || "<p style='text-align:center; color:gray;'>ยังไม่มีแท็ก</p>";
-    }
 
-    function saveTagSettings(index) {
-        let oldName = tags[index].name;
-        let newName = document.getElementById(`editTagName-${index}`).value.trim();
-        if (!newName) return alert("กรุณาระบุชื่อแท็ก");
-
-        tags[index].name = newName;
-        tags[index].color = document.getElementById(`editTagColor-${index}`).value;
-        tags[index].promoteTo = document.getElementById(`editNextTag-${index}`).value;
-        tags[index].demoteTo = document.getElementById(`editFailTag-${index}`).value;
-
-        if (oldName !== newName) {
-            folders.forEach(f => f.cards.forEach(c => {
-                if (c.tag && c.tag.includes(oldName)) c.tag = c.tag.map(t => t === oldName ? newName : t);
-            }));
-        }
-        save(); renderTagManagerList(); alert("บันทึกสำเร็จ!");
-    }
-
-    function deleteTagPermanently(index) {
-        if (!confirm("ลบแท็กนี้ออกจากการ์ดทุกใบด้วยใช่ไหม?")) return;
-        let name = tags[index].name;
-        tags.splice(index, 1);
-        folders.forEach(f => f.cards.forEach(c => { if (c.tag) c.tag = c.tag.filter(t => t !== name); }));
-        save(); renderTagManagerList();
-    }
-
-    // 7. ADVANCED SEARCH & EXPORT
-    let currentSearchResults = [];
-    let currentSearchPage = 1;
-
-    function renderSearchTagFilters() {
-        let html = tags.map(t => {
-            let isSelected = selectedSearchTags.includes(t.name);
-            return `
-                <div onclick="toggleSearchTag('${t.name}')" 
-                     style="cursor:pointer; padding:6px 14px; border-radius:20px; border: 2px solid ${t.color}; 
-                            background:${isSelected ? t.color : 'white'}; color:${isSelected ? 'white' : t.color}; 
-                            font-weight:bold; font-size:13px; transition:0.2s; user-select:none;">
-                    ${isSelected ? '✓ ' : ''}${t.name}
-                </div>`;
-        }).join("");
-        document.getElementById("searchTagFilters").innerHTML = html || "<small style='color:#cbd5e1;'>ยังไม่มีแท็ก</small>";
-    }
-
-    function toggleSearchTag(tagName) {
-        if (selectedSearchTags.includes(tagName)) selectedSearchTags = selectedSearchTags.filter(t => t !== tagName);
-        else selectedSearchTags.push(tagName);
-        renderSearchTagFilters(); executeAdvancedSearch();
-    }
-
-    function executeAdvancedSearch() {
-        let query = document.getElementById("advSearchInput").value.toLowerCase().trim();
-        let selectedFolder = document.getElementById("advFolderFilter").value;
-        currentSearchResults = []; 
-
-        folders.forEach(f => {
-            if(selectedFolder !== "all" && f.name !== selectedFolder) return;
-
-            f.cards.forEach((c, idx) => {
-                let matchText = c.front.toLowerCase().includes(query) || c.back.toLowerCase().includes(query);
-                let cardTags = c.tag || [];
-                let matchTags = selectedSearchTags.length === 0 || selectedSearchTags.every(t => cardTags.includes(t));
-
-                if (matchText && matchTags) {
-                    currentSearchResults.push({ ...c, folderName: f.name, originalIndex: idx }); 
-                }
-            });
-        });
-        currentSearchPage = 1; 
-        renderSearchResultsWithPagination();
-    }
-
-    function changeItemsPerPage() { currentSearchPage = 1; renderSearchResultsWithPagination(); }
-    function changeSearchPage(pageNumber) { currentSearchPage = pageNumber; renderSearchResultsWithPagination(); document.getElementById("searchPage").scrollIntoView({ behavior: 'smooth' }); }
-
-    function renderSearchResultsWithPagination() {
-        let totalResults = currentSearchResults.length;
-        let countDiv = document.getElementById("searchResultsCount");
-        let playBtnContainer = document.getElementById("playSearchBtnContainer");
-        let resultDiv = document.getElementById("advSearchResult");
-        let paginationDiv = document.getElementById("searchPagination");
-        
-        if(!countDiv || !resultDiv) return;
-        countDiv.innerHTML = `พบทั้งหมด <b>${totalResults}</b> รายการ`;
-        resultDiv.innerHTML = ""; paginationDiv.innerHTML = "";
-
-        if (totalResults === 0) {
-            playBtnContainer.style.display = "none";
-            resultDiv.innerHTML = "<div style='text-align:center; color:#94a3b8; padding:40px; background:white; border-radius:15px;'>ไม่พบคำศัพท์ที่ตรงกับเงื่อนไข</div>";
-            updateSearchBulkBar();
-            return;
-        }
-
-        let itemsPerPageVal = document.getElementById("itemsPerPageSelect").value;
-        let itemsPerPage = itemsPerPageVal === "all" ? totalResults : parseInt(itemsPerPageVal);
-        let totalPages = Math.ceil(totalResults / itemsPerPage);
-
-        if (currentSearchPage > totalPages) currentSearchPage = totalPages;
-
-        let startIndex = (currentSearchPage - 1) * itemsPerPage;
-        let endIndex = Math.min(startIndex + itemsPerPage, totalResults);
-        let visibleCards = currentSearchResults.slice(startIndex, endIndex);
-
-        playBtnContainer.style.display = "block";
-        playBtnContainer.querySelector("button").innerText = `▶️ เริ่มเรียน (เฉพาะ ${visibleCards.length} ใบในหน้านี้)`;
-
-        visibleCards.forEach(c => {
-            let tagBadges = (c.tag || []).map(tn => {
-                let tObj = tags.find(tg => tg.name === tn);
-                return `<span style="font-size:11px; font-weight:bold; background:${tObj ? tObj.color : '#eee'}; color:#1e293b; padding:2px 8px; border-radius:12px; margin-right:4px;">
-                    ${tn} <span style="cursor:pointer; color:#ef4444; margin-left:3px;" onclick="removeTagFromSearchCard('${c.folderName}', '${c.front}', '${tn}')">×</span>
-                </span>`;
-            }).join("");
-            
-            let tagOptions = tags.map(t => `<option value="${t.name}">${t.name}</option>`).join("");
-            tagBadges += `<select onchange="if(this.value) { addTagToSearchCard('${c.folderName}', '${c.front}', this.value); this.selectedIndex=0; }" style="background:#e2e8f0; border:none; border-radius:8px; padding:2px 6px; font-size:11px; cursor:pointer; margin-left:5px; outline:none;">
-                <option value="">+ เลือก Tag</option>
-                ${tagOptions}
-            </select>`;
-
-            resultDiv.innerHTML += `
-                <div class="card" style="text-align:left; border-left:5px solid #6366f1; padding:15px; margin-bottom:10px; background:white; border-radius:12px; box-shadow:0 2px 5px rgba(0,0,0,0.05); display:flex; align-items:center;">
-                    <input type="checkbox" class="export-checkbox" data-front="${c.front}" data-back="${c.back}" data-folder="${c.folderName}" onchange="updateSearchBulkBar()" style="width:20px; height:20px; margin-right:15px; cursor:pointer;">
-                    <div style="flex-grow:1;">
-                        <div style="font-size:11px; color:#94a3b8; margin-bottom:5px;">📂 โฟลเดอร์: ${c.folderName}</div>
-                        <strong style="font-size:18px; color:#1e293b;">${c.front}</strong>
-                        <div style="color:#475569; font-size:15px; margin:8px 0; background:#f8fafc; padding:8px; border-radius:8px;">${c.back}</div>
-                        <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">${tagBadges}</div>
-                    </div>
-                </div>`;
-        });
-
-        if (totalPages > 1) {
-            if (currentSearchPage > 1) paginationDiv.innerHTML += `<button onclick="changeSearchPage(${currentSearchPage - 1})" style="padding:8px 12px; background:white; border:1px solid #cbd5e1; border-radius:8px; cursor:pointer; color:#64748b;">◀</button>`;
-            for (let i = 1; i <= totalPages; i++) {
-                let isActive = (i === currentSearchPage);
-                paginationDiv.innerHTML += `<button onclick="changeSearchPage(${i})" style="padding:8px 15px; background:${isActive?'#6366f1':'white'}; color:${isActive?'white':'#1e293b'}; border:1px solid ${isActive?'#6366f1':'#cbd5e1'}; border-radius:8px; cursor:pointer; font-weight:bold;">${i}</button>`;
-            }
-            if (currentSearchPage < totalPages) paginationDiv.innerHTML += `<button onclick="changeSearchPage(${currentSearchPage + 1})" style="padding:8px 12px; background:white; border:1px solid #cbd5e1; border-radius:8px; cursor:pointer; color:#64748b;">▶</button>`;
-        }
-        updateSearchBulkBar(); 
-    }
-
-    function removeTagFromSearchCard(folderName, frontText, tagName) {
-        if(!confirm(`ลบ Tag "${tagName}" ออก?`)) return;
-        let fIdx = folders.findIndex(f => f.name === folderName);
-        if(fIdx > -1) {
-            let card = folders[fIdx].cards.find(c => c.front === frontText);
-            if(card && card.tag) {
-                card.tag = card.tag.filter(t => t !== tagName);
-                save(); executeAdvancedSearch();
-            }
-        }
-    }
-    
-    function addTagToSearchCard(folderName, frontText, selectedTag) {
-        if(!selectedTag) return;
-        let fIdx = folders.findIndex(f => f.name === folderName);
-        if(fIdx > -1) {
-            let card = folders[fIdx].cards.find(c => c.front === frontText);
-            if(card) {
-                if(!card.tag) card.tag = [];
-                if(!card.tag.includes(selectedTag)) {
-                    card.tag.push(selectedTag);
-                    
-                    let tagObj = tags.find(t => t.name === selectedTag);
-                    let interval = tagObj ? Number(tagObj.interval) : 1;
-                    card.due = Date.now() + (interval * 86400000); 
-
-                    save(); executeAdvancedSearch();
-                }
-            }
-        }
-    }
-
-    function selectAllSearchCards(status) {
-        document.querySelectorAll('.export-checkbox').forEach(cb => cb.checked = status);
-        updateSearchBulkBar();
-    }
-
-    function updateSearchBulkBar() {
-        let checkedBoxes = document.querySelectorAll('.export-checkbox:checked');
-        let bar = document.getElementById("searchBulkActionOuter");
-        if (checkedBoxes.length > 0) {
-            bar.style.display = "block";
-            document.getElementById("searchSelectedCount").innerText = `เลือกแล้ว ${checkedBoxes.length} ใบ`;
-        } else {
-            bar.style.display = "none";
-        }
-    }
-
-    function copyFormattedExport() {
-        let selected = document.querySelectorAll(".export-checkbox:checked");
-        if(selected.length === 0) return alert("กรุณาเลือกการ์ดก่อน");
-        let result = "";
-        selected.forEach(cb => { result += `${cb.getAttribute("data-front")}=${cb.getAttribute("data-back")}*\n`; });
-        navigator.clipboard.writeText(result).then(() => {
-            alert("คัดลอกสำเร็จ!\n\n" + result);
-            selectAllSearchCards(false);
-        }).catch(err => alert("เกิดข้อผิดพลาด: " + err));
-    }
-
-    function deleteSelectedFromSearch() {
-        let selected = document.querySelectorAll(".export-checkbox:checked");
-        if (!confirm(`คุณต้องการลบการ์ดที่เลือกทั้ง ${selected.length} ใบ ใช่หรือไม่?`)) return;
-        
-        selected.forEach(cb => {
-            let fname = cb.getAttribute("data-folder");
-            let ffront = cb.getAttribute("data-front");
-            let fIdx = folders.findIndex(f => f.name === fname);
-            if(fIdx > -1) folders[fIdx].cards = folders[fIdx].cards.filter(c => c.front !== ffront);
-        });
-        save(); executeAdvancedSearch(); 
-    }
-
-    function openBulkTagModal() {
-        let container = document.getElementById("bulkTagCheckboxes");
-        if(tags.length === 0) {
-            container.innerHTML = "<p style='color:gray;'>ยังไม่มีแท็กในระบบ</p>";
-        } else {
-            container.innerHTML = tags.map(t => `
-                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; background:#f8fafc; padding:8px; border-radius:8px;">
-                    <input type="checkbox" class="bulk-tag-checkbox" value="${t.name}">
-                    <span style="font-weight:bold; color:${t.color}">${t.name}</span>
-                </label>
-            `).join("");
-        }
-        document.getElementById("bulkTagModal").style.display = "flex";
-    }
-
-    function closeBulkTagModal() {
-        document.getElementById("bulkTagModal").style.display = "none";
-    }
-
-    function applyBulkTags() {
-        let selectedTags = Array.from(document.querySelectorAll('.bulk-tag-checkbox:checked')).map(cb => cb.value);
-        if(selectedTags.length === 0) {
-            alert("กรุณาเลือกอย่างน้อย 1 แท็ก (หรือกดยกเลิก)");
-            return;
-        }
-
-        let selectedCards = document.querySelectorAll(".export-checkbox:checked");
-        selectedCards.forEach(cb => {
-            let fname = cb.getAttribute("data-folder");
-            let ffront = cb.getAttribute("data-front");
-            let fIdx = folders.findIndex(f => f.name === fname);
-            if(fIdx > -1) {
-                let card = folders[fIdx].cards.find(c => c.front === ffront);
-                if(card) {
-                    if(!card.tag) card.tag = [];
-                    selectedTags.forEach(t => { 
-                        if(!card.tag.includes(t)) {
-                            card.tag.push(t); 
-                            
-                            let tagObj = tags.find(tg => tg.name === t);
-                            let interval = tagObj ? Number(tagObj.interval) : 1;
-                            card.due = Date.now() + (interval * 86400000); 
-                        }
-                    });
-                }
-            }
-        });
-        
-        save(); 
-        executeAdvancedSearch(); 
-        closeBulkTagModal();
-        alert(`เพิ่มแท็กและอัปเดตวันทบทวนเรียบร้อยแล้ว!`);
-    }
-
-    function startPlaySearch() {
-        if (currentSearchResults.length === 0) return;
-        let itemsPerPageVal = document.getElementById("itemsPerPageSelect").value;
-        let totalResults = currentSearchResults.length;
-        let itemsPerPage = itemsPerPageVal === "all" ? totalResults : parseInt(itemsPerPageVal);
-        let startIndex = (currentSearchPage - 1) * itemsPerPage;
-        let endIndex = Math.min(startIndex + itemsPerPage, totalResults);
-        let pageCards = currentSearchResults.slice(startIndex, endIndex);
-
-        if (pageCards.length === 0) return;
-        let tempDeck = JSON.parse(JSON.stringify(pageCards));
-        if (shuffleMode) tempDeck.sort(() => Math.random() - 0.5);
-        
-        document.getElementById("searchPage").style.display = "none";
-        document.getElementById("list").style.display = "block";
-        startSessionWithCards(tempDeck);
-    }
-
-    // 8. PLAY MODE
-    function startPlayFromHome() {
-        if (current === -1 || !folders[current] || folders[current].cards.length === 0) return alert("ไม่มีการ์ดในโฟลเดอร์นี้ให้เรียนครับ");
-        let tempDeck = JSON.parse(JSON.stringify(folders[current].cards));
-        if (shuffleMode) tempDeck.sort(() => Math.random() - 0.5);
-        hideAllPages(); document.getElementById("list").style.display = "block";
-        startSessionWithCards(tempDeck);
-    }
-
-    function toggleShuffle() {
-        shuffleMode = !shuffleMode;
-        let btn = document.getElementById("shuffleBtn");
-        btn.innerText = shuffleMode ? "🔀 สุ่ม: เปิด" : "🔀 สุ่ม: ปิด";
-        btn.style.background = shuffleMode ? "#6366f1" : "#eee";
-        btn.style.color = shuffleMode ? "white" : "#444";
-    }
-
-    function startSessionWithCards(customDeck) {
-        playing = true; currentIdx = 0; sessionCards = customDeck; showCustomCard();
-    }
-
-    function showCustomCard() {
-        if (currentIdx >= sessionCards.length) { alert("เย้! เรียนจบชุดแล้วครับ"); goToHome(); return; }
-
-        let c = sessionCards[currentIdx]; isShowingAnswer = false;
-        let currentTagHTML = (c.tag || []).map(tn => {
-            let tObj = tags.find(tg => tg.name === tn);
-            return `<span style="background:${tObj ? tObj.color : '#eee'}; color:white; padding:2px 8px; border-radius:10px; font-size:12px; margin-right:5px;">${tn}</span>`;
-        }).join("");
-        let progressPercent = ((currentIdx + 1) / sessionCards.length) * 100;
-
-        let html = `
-            <div style="text-align:center; padding:10px; max-width:500px; margin:auto;">
-                <div style="margin-bottom: 15px;">
-                    <div style="display:flex; justify-content:space-between; font-size:12px; color:#64748b; margin-bottom:5px;">
-                        <span>ใบที่ ${currentIdx + 1} จาก ${sessionCards.length}</span>
-                        <span>${Math.round(progressPercent)}%</span>
-                    </div>
-                    <div style="width:100%; height:8px; background:#e2e8f0; border-radius:10px; overflow:hidden;">
-                        <div style="width:${progressPercent}%; height:100%; background:#6366f1; transition:0.3s;"></div>
-                    </div>
-                </div>
-
-                <div style="background:white; padding:15px; border-radius:15px; margin-bottom:15px; box-shadow:0 2px 8px rgba(0,0,0,0.05); text-align:left;">
-                    <div style="font-size:12px; color:#94a3b8; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-                        <span>🏷️ แท็กของการ์ดใบนี้:</span>
-                        <button onclick="showTagEditorInPlay()" style="background:#f1f5f9; border:none; padding:4px 8px; border-radius:5px; cursor:pointer; font-size:11px; color:#6366f1;">➕ แก้ไขแท็ก</button>
-                    </div>
-                    <div id="currentCardTags">${currentTagHTML || '<small style="color:#cbd5e1;">ไม่มีแท็ก</small>'}</div>
-                    <div id="tagEditorArea" style="display:none; margin-top:10px; border-top:1px solid #f1f5f9; padding-top:10px;">
-                        <div style="display:flex; flex-wrap:wrap; gap:5px;">
-                            ${tags.map(t => `<div onclick="toggleTagOnCurrentCard('${t.name}')" style="cursor:pointer; font-size:11px; padding:4px 10px; border-radius:12px; border:2px solid ${t.color}; color:${t.color}; font-weight:bold;">${t.name}</div>`).join("")}
+            list.innerHTML += `
+                <div style="background:white; padding:15px; border-radius:10px; margin-bottom:15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <h4 style="margin:0; color:#1e293b;">📂 ${f.name}</h4>
+                        <div>
+                            <button class="btn btn-success" style="padding: 5px 10px; font-size:12px;" onclick="addCard(${i})">+ เพิ่มการ์ด</button>
+                            <button class="btn btn-danger" style="padding: 5px 10px; font-size:12px;" onclick="deleteFolder(${i})">ลบโฟลเดอร์</button>
                         </div>
                     </div>
+                    ${cardsHtml}
                 </div>
-
-                <div id="flashcardDisplay" style="font-size:32px; font-weight:bold; min-height:180px; display:flex; align-items:center; justify-content:center; background:white; border-radius:25px; box-shadow:0 10px 30px rgba(0,0,0,0.1); margin-bottom:25px; padding:20px;">
-                    ${c.front}
-                </div>
-
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-                    <button id="revealBtn" onclick="toggleAnswer()" style="grid-column: span 2; background:#6366f1; color:white; padding:15px; border-radius:12px; border:none; font-weight:bold; font-size:18px; cursor:pointer;">👁️ ดูเฉลย</button>
-                    <button onclick="prevCard()" style="background:#f1f5f9; color:#64748b; padding:12px; border-radius:12px; border:none; font-weight:bold; cursor:pointer;" ${currentIdx === 0 ? 'disabled' : ''}>⬅️ ย้อนกลับ</button>
-                    <button onclick="nextCard()" style="background:#10b981; color:white; padding:12px; border-radius:12px; border:none; font-weight:bold; cursor:pointer;">ใบถัดไป ➡️</button>
-                    <button onclick="skipCard()" style="grid-column: span 2; background:none; color:#94a3b8; border:none; padding:10px; font-size:14px; cursor:pointer;">⏭️ ข้ามคำนี้ไปท้ายสุด</button>
-                </div>
-                <button onclick="goToHome()" style="margin-top:20px; background:none; color:#cbd5e1; border:none; cursor:pointer; text-decoration:underline; font-size:12px;">เลิกเรียนและกลับหน้าหลัก</button>
-            </div>
-        `;
-        document.getElementById("list").innerHTML = html;
-    }
-
-    function toggleAnswer() {
-        let cardDiv = document.getElementById("flashcardDisplay");
-        let revealBtn = document.getElementById("revealBtn");
-        let c = sessionCards[currentIdx];
-        if (!isShowingAnswer) {
-            cardDiv.innerHTML = `<span style="color:#6366f1;">${c.back}</span>`; cardDiv.style.background = "#f5f7ff"; revealBtn.innerText = "🔄 ดูคำศัพท์ใหม่"; isShowingAnswer = true;
-        } else {
-            cardDiv.innerHTML = c.front; cardDiv.style.background = "white"; revealBtn.innerText = "👁️ ดูเฉลย"; isShowingAnswer = false;
-        }
-    }
-
-    function prevCard() { if (currentIdx > 0) { currentIdx--; showCustomCard(); } }
-    function skipCard() {
-        if (sessionCards.length <= 1) return;
-        let c = sessionCards.splice(currentIdx, 1)[0]; sessionCards.push(c);
-        if (currentIdx >= sessionCards.length) currentIdx = 0; showCustomCard();
-    }
-    function nextCard() { applyTagAutomation(sessionCards[currentIdx], true); currentIdx++; save(); showCustomCard(); }
-
-    function showTagEditorInPlay() {
-        let area = document.getElementById("tagEditorArea"); area.style.display = area.style.display === "none" ? "block" : "none";
-    }
-    
-    function toggleTagOnCurrentCard(tagName) {
-        let card = sessionCards[currentIdx];
-        if (!card.tag) card.tag = [];
-        if (card.tag.includes(tagName)) {
-            card.tag = card.tag.filter(t => t !== tagName);
-        } else {
-            card.tag.push(tagName);
-            
-            let tagObj = tags.find(t => t.name === tagName);
-            let interval = tagObj ? Number(tagObj.interval) : 1;
-            card.due = Date.now() + (interval * 86400000); 
-        }
-        save(); updateTagBadgesInPlay(card);
-    }
-
-    function updateTagBadgesInPlay(card) {
-        let html = (card.tag || []).map(tn => {
-            let tObj = tags.find(tg => tg.name === tn);
-            return `<span style="background:${tObj ? tObj.color : '#eee'}; color:white; padding:2px 8px; border-radius:10px; font-size:12px; margin-right:5px;">${tn}</span>`;
-        }).join("");
-        document.getElementById("currentCardTags").innerHTML = html || '<small style="color:#cbd5e1;">ไม่มีแท็ก</small>';
-    }
-
-    // 9. AUTOMATION & LOGIC
-    function applyTagAutomation(card, isSuccess) {
-        if (!card.tag || card.tag.length === 0) return;
-
-        let today = new Date();
-        today.setHours(0, 0, 0, 0); 
-        let dueDate = new Date(card.due);
-        dueDate.setHours(0, 0, 0, 0); 
-
-        // ห้ามเปลี่ยนแท็กถ้าทบทวนก่อนกำหนด
-        if (dueDate > today) {
-            return; 
-        }
-
-        let changed = false;
-        let realCard = null;
-        folders.forEach(f => f.cards.forEach(c => { if(c.front === card.front && c.back === card.back) realCard = c; }));
-
-        card.tag.forEach(tagName => {
-            let config = tags.find(t => t.name === tagName);
-            if (config) {
-                let targetTag = isSuccess ? config.promoteTo : config.demoteTo;
-                
-                if (targetTag && targetTag !== "") {
-                    card.tag = card.tag.filter(t => t !== tagName);
-                    if (!card.tag.includes(targetTag)) card.tag.push(targetTag);
-                    
-                    let newConfig = tags.find(t => t.name === targetTag);
-                    let days = newConfig ? newConfig.interval : 1;
-                    
-                    card.due = today.getTime() + (days * 86400000); // นับล่วงหน้าจากวันนี้เสมอ
-                    changed = true;
-                }
-            }
+            `;
         });
-        
-        if(changed && realCard) { realCard.tag = card.tag; realCard.due = card.due; }
     }
 
-    // ระบบกวาดล้างการ์ดที่ตกค้างในอดีตให้อัปเดตมาที่ปัจจุบันอัตโนมัติ
-    function processOverdueCards() {
-        let today = new Date();
-        today.setHours(0, 0, 0, 0); 
-        let todayMs = today.getTime(); 
-        let changed = false;
-
-        folders.forEach(f => {
-            f.cards.forEach(card => {
-                if (!card.due || !card.tag || card.tag.length === 0) return;
-
-                let dueDate = new Date(card.due);
-                dueDate.setHours(0, 0, 0, 0);
-
-                if (today > dueDate) {
-                    let oldTagStr = JSON.stringify(card.tag);
-                    
-                    card.tag.forEach(tagName => {
-                        let config = tags.find(t => t.name === tagName);
-                        if (config && config.demoteTo && config.demoteTo !== "") {
-                            let targetTag = config.demoteTo;
-                            
-                            card.tag = card.tag.filter(t => t !== tagName);
-                            if (!card.tag.includes(targetTag)) card.tag.push(targetTag);
-                            
-                            let newConfig = tags.find(t => t.name === targetTag);
-                            let days = newConfig ? newConfig.interval : 0;
-                            
-                            card.due = todayMs + (days * 86400000); 
-                        }
-                    });
-
-                    if (oldTagStr !== JSON.stringify(card.tag)) {
-                        changed = true;
-                    }
-                }
-            });
-        });
-        
-        if (changed) save(); 
+    function deleteCard(fIndex, cIndex) {
+        if(confirm("ลบการ์ดใบนี้?")) {
+            folders[fIndex].cards.splice(cIndex, 1);
+            saveData();
+        }
     }
 
-    // 10. CALENDAR 
+    // ==========================================
+    // ระบบปฏิทิน
+    // ==========================================
     function renderCalendar() {
-        processOverdueCards(); // สั่งกวาดล้างจุดตกค้างทุกครั้งที่เปิดปฏิทิน
+        const grid = document.getElementById("calendarGrid");
+        if(!grid) return;
+        grid.innerHTML = "";
         
-        let year = calDate.getFullYear(); let month = calDate.getMonth();
-        let firstDay = new Date(year, month, 1).getDay(); let daysInMonth = new Date(year, month+1, 0).getDate();
-        let monthNames = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
-        document.getElementById("monthTitle").innerText = `${monthNames[month]} ${year + 543}`;
-        
-        let html = ["อา","จ","อ","พ","พฤ","ศ","ส"].map(d=>`<div class="dayHeader">${d}</div>`).join("");
-        for(let i=0; i<firstDay; i++) html+=`<div></div>`;
-        
-        let today = new Date(); 
-        
-        for(let d=1; d<=daysInMonth; d++){
-            let dots = ""; let count = 0;
-            folders.forEach(f => {
-                f.cards.forEach(card => {
-                    let dueDate = new Date(card.due);
-                    if(dueDate.getFullYear() === year && dueDate.getMonth() === month && dueDate.getDate() === d){
-                        count++;
-                        let tagObj = tags.find(t => t.name === (card.tag?.[0]));
-                        dots += `<span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:${tagObj ? tagObj.color : '#6366f1'}; margin:1px;"></span>`;
+        const y = calDate.getFullYear();
+        const m = calDate.getMonth();
+        const monthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        document.getElementById("calMonthTitle").innerText = `${monthNames[m]} ${y}`;
+
+        const firstDay = new Date(y, m, 1).getDay();
+        const daysInMonth = new Date(y, m + 1, 0).getDate();
+        const todayStr = new Date().toDateString();
+
+        for (let i = 0; i < firstDay; i++) {
+            grid.innerHTML += `<div></div>`;
+        }
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const currentObjDate = new Date(y, m, d);
+            const dateStr = currentObjDate.toDateString();
+            
+            let hasDue = false;
+            // เช็คว่ามีคำศัพท์ที่ต้องทบทวนในวันนี้หรือไม่
+            folders.forEach(folder => {
+                folder.cards.forEach(card => {
+                    if (new Date(card.due).toDateString() === dateStr) {
+                        hasDue = true;
                     }
                 });
             });
 
-            // ตีกรอบไฮไลท์ให้ "วันนี้"
-            let isToday = (d === today.getDate() && month === today.getMonth() && year === today.getFullYear());
-            let todayStyle = isToday ? 'border: 2px solid #3b82f6; background-color: #eff6ff;' : '';
-            
-            html += `
-                <div class="dayCell" onclick="showDayDetails(${year}, ${month}, ${d})" style="cursor:pointer; position:relative; ${todayStyle}">
-                    ${isToday ? `<span style="font-weight:bold; color:#3b82f6;">${d}</span>` : d} 
-                    <div style="margin-top:5px; display:flex; flex-wrap:wrap; justify-content:center;">${dots}</div>
-                    ${count > 0 ? `<small style="position:absolute; top:2px; right:5px; font-size:9px; color:#6366f1; font-weight:bold;">${count}</small>` : ''}
+            const isToday = dateStr === todayStr ? "cal-today" : "";
+            const dot = hasDue ? `<div class="due-dot"></div>` : "";
+
+            grid.innerHTML += `
+                <div class="cal-day ${isToday}" onclick="showDayDetails(${y}, ${m}, ${d})">
+                    ${d}
+                    ${dot}
                 </div>`;
         }
-        document.getElementById("calendarGrid").innerHTML = html;
     }
 
     function showDayDetails(y, m, d) {
         const targetDate = new Date(y, m, d).toDateString();
         document.getElementById("modalDateTitle").innerText = `📅 รายการวันที่ ${d}/${m+1}/${y}`;
         let listHtml = ""; let found = false;
+        
         folders.forEach(folder => {
             folder.cards.forEach(card => {
                 if (new Date(card.due).toDateString() === targetDate) {
@@ -1481,7 +560,8 @@
                 }
             });
         });
-        document.getElementById("modalCardList").innerHTML = found ? listHtml : "<p style='text-align:center; color:gray;'>ไม่มีรายการทบทวนในวันนี้</p>";
+        
+        document.getElementById("modalCardList").innerHTML = found ? listHtml : "<p style='text-align:center; color:gray; padding:20px;'>ไม่มีรายการทบทวนในวันนี้ 🎉</p>";
         document.getElementById("calendarModal").style.display = "flex";
     }
 
@@ -1489,16 +569,13 @@
     function nextMonth(){ calDate.setMonth(calDate.getMonth()+1); renderCalendar(); }
     function prevMonth(){ calDate.setMonth(calDate.getMonth()-1); renderCalendar(); }
 
+    // ==========================================
+    // เคลียร์ window.onload ที่เคยสร้างปัญหาคอขวดทิ้ง
+    // ==========================================
     window.onload = () => {
-    // 1. อะไรที่เกี่ยวกับการดึงข้อมูลจากฐานข้อมูล ลบทิ้งให้หมด!
-    // 2. เหลือไว้เฉพาะฟังก์ชันที่ช่วยจัดการเรื่อง "เวลา" หรือ "วันหมดอายุ" 
-    if (typeof processOverdueCards === "function") {
-        processOverdueCards(); 
-    }
-    
-    // หมายเหตุ: ไม่ต้องใส่ loadData() หรือ render() ในนี้แล้ว 
-    // เพราะระบบ onAuthStateChanged (ก้อนใหม่ที่คุณเพิ่งวาง) จะเป็นคนคุมคิวให้เอง
-}   ;
+        // ปล่อยว่างไว้ เพราะ auth.onAuthStateChanged เป็นคนจัดการคิวโหลดข้อมูลแล้ว
+    };
+
 </script>
 </body>
 </html>
