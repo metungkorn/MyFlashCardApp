@@ -343,7 +343,6 @@
                 tags = data.tags || [];
                 
                 // สั่ง Render หน้าจอใหม่ด้วยข้อมูลที่เพิ่งซิงค์มา
-                render(); 
                 if (typeof renderTagsUI === "function") renderTagsUI();
                 
                 if (doc.metadata.fromCache) {
@@ -411,107 +410,6 @@
             localStorage.removeItem("lastModified"); 
             location.reload();
         });
-    }
-
-    async function loadData(uid) {
-        try {
-            // 🌟 1. โหลดข้อมูลจากเครื่อง (Cache) ขึ้นมาโชว์ทันที
-            let localFolders = JSON.parse(localStorage.getItem("folders")) || [];
-            let localTags = JSON.parse(localStorage.getItem("tags")) || [];
-            let localModified = parseInt(localStorage.getItem("lastModified")) || 0;
-
-            if (localFolders.length > 0) {
-                folders = localFolders;
-                tags = localTags;
-                lastModified = localModified;
-                render(); 
-                renderTagInputs();
-                if(current !== -1) viewCards();
-                console.log("⚡ โหลดข้อมูลจากเครื่อง (Cache) เสร็จสิ้นภายใน 0.1 วินาที!");
-            }
-
-            // 🌟 2. ดึง Cloud เบื้องหลัง
-            showSyncStatus('🔄 กำลังตรวจสอบข้อมูลล่าสุดจาก Cloud...', 'loading'); // แก้ไขการเรียกใช้ฟังก์ชันให้ถูกชื่อ
-            const docRef = db.collection("users").doc(uid);
-            const docSnap = await docRef.get(); 
-
-            let cloudHasData = false;
-            let cloudModified = 0;
-            let cloudFolders = [];
-            let cloudTags = [];
-
-            if (docSnap.exists) {
-                let data = docSnap.data();
-                if (data.folders) {
-                    cloudHasData = true;
-                    cloudFolders = data.folders || [];
-                    cloudTags = data.tags || [];
-                    cloudModified = data.lastModified || 0;
-                }
-            }
-
-            // 🌟 3. เทียบเวลา (Timestamp)
-            if (!cloudHasData && localFolders.length > 0) {
-                console.log("☁️ นำข้อมูลจากเครื่อง ดันขึ้น Cloud อัตโนมัติ!");
-                showSyncStatus('⬆️ กำลังส่งข้อมูลชุดแรกขึ้น Cloud...', 'loading');
-                save(); 
-            } else if (cloudHasData) {
-                if (localModified > cloudModified) {
-                    console.log("⬆️ ข้อมูลในเครื่องใหม่กว่า! กำลังอัปโหลดส่วนที่ค้างอยู่...");
-                    showSyncStatus('⬆️ กำลังอัปโหลดข้อมูลที่ค้างอยู่...', 'loading');
-                    save(); 
-                } else if (cloudModified > localModified) {
-                    console.log("⬇️ ข้อมูลบน Cloud ใหม่กว่า โหลดมาทับในเครื่องสำเร็จ!");
-                    folders = cloudFolders;
-                    tags = cloudTags;
-                    lastModified = cloudModified;
-                    localStorage.setItem("folders", JSON.stringify(folders));
-                    localStorage.setItem("tags", JSON.stringify(tags));
-                    localStorage.setItem("lastModified", lastModified);
-                    
-                    render();
-                    renderTagInputs();
-                    if(current !== -1) viewCards();
-                } else {
-                    console.log("✅ ข้อมูลในเครื่องและ Cloud เป็นเวอร์ชันเดียวกันเป๊ะ!");
-                }
-            } else {
-                folders = []; tags = []; lastModified = Date.now();
-                render(); 
-            }
-
-            showSyncStatus('✅ ข้อมูลพร้อมใช้งานและตรงกับ Cloud', 'success');
-            
-            // 🌟 4. ระบบ Real-time Sync 
-            docRef.onSnapshot((doc) => {
-                if (doc.exists) {
-                    let data = doc.data();
-                    let newCloudModified = data.lastModified || 0;
-                    
-                    if (newCloudModified > lastModified) {
-                        showSyncStatus('⬇️ มีคนอัปเดตข้อมูลจากเครื่องอื่น กำลังดึงข้อมูล...', 'loading');
-                        folders = data.folders || [];
-                        tags = data.tags || [];
-                        lastModified = newCloudModified;
-                        localStorage.setItem("folders", JSON.stringify(folders));
-                        localStorage.setItem("tags", JSON.stringify(tags));
-                        localStorage.setItem("lastModified", lastModified);
-                        
-                        if (!playing) { 
-                            render();
-                            renderTagInputs();
-                            if(current !== -1) viewCards();
-                            console.log("🔄 ซิงค์ข้อมูลข้ามอุปกรณ์เรียบร้อย!");
-                            showSyncStatus('✅ อัปเดตข้อมูลตรงกันแล้ว', 'success');
-                        }
-                    }
-                }
-            });
-
-        } catch(e) {
-            console.error("Load Error:", e);
-            showSyncStatus('❌ เกิดข้อผิดพลาดในการดึงข้อมูล', 'error');
-        }
     }
 
     // ==========================================
