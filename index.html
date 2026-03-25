@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flashcard (Ultimate Edition) - Cloud Synced & Upgraded</title>
+    <title>Flashcard (V.6) - Cloud Synced & Upgraded</title>
     <style>
         /* --- CSS หลัก --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f8; padding: 20px; color: #333; line-height: 1.6; }
@@ -82,6 +82,29 @@
 
         <div id="homePage">
             <h1>📚 Flashcard (Ultimate)</h1>
+
+            <div style="background:#fff; padding:15px; border-radius:15px; margin-bottom:20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align:center; border: 2px dashed #cbd5e1;">
+                <strong style="font-size: 16px; color:#1e293b;">💾 ระบบเซฟและกู้คืนข้อมูล (Backup / Restore)</strong>
+                <p style="font-size:12px; color:#64748b; margin-bottom:10px;">เซฟข้อมูลเก็บไว้ในเครื่อง เผื่อระบบ Cloud มีปัญหา หรือนำไฟล์เซฟกลับมาโหลดใหม่</p>
+                <div style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
+                    <button onclick="openSaveModal()" style="background:#3b82f6; color:white; padding:10px 20px; border-radius:10px; font-weight:bold; box-shadow:0 4px 6px rgba(59,130,246,0.3);">📥 สร้างไฟล์เซฟ (Save)</button>
+                    <button onclick="triggerLoadSave()" style="background:#f59e0b; color:white; padding:10px 20px; border-radius:10px; font-weight:bold; box-shadow:0 4px 6px rgba(245,158,11,0.3);">📤 โหลดไฟล์เซฟ (Load)</button>
+                </div>
+                <input type="file" id="loadSaveInput" accept=".json" style="display:none;" onchange="handleLoadSave(event)">
+            </div>
+
+            <div id="saveModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:3000;">
+                <div style="background:white; padding:25px; border-radius:20px; width:90%; max-width:400px; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+                    <h3 style="margin-top:0; color:#1e293b;">💾 ตั้งชื่อไฟล์เซฟของคุณ</h3>
+                    <p style="font-size:12px; color:#64748b;">ระบบจะทำการโหลดเป็นไฟล์ลงในโฟลเดอร์ Download ของคุณ</p>
+                    <input type="text" id="saveFileName" placeholder="เช่น backup_ก่อนสอบ" style="width:100%; padding:12px; box-sizing:border-box; margin-bottom:15px; border-radius:8px; border:1px solid #cbd5e1; font-size:16px;">
+                    <div style="display:flex; gap:10px;">
+                        <button onclick="executeSaveFile()" style="flex-grow:1; background:#10b981; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold; font-size:16px;">✅ ยืนยันเซฟ</button>
+                        <button onclick="closeSaveModal()" style="background:#ef4444; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold; font-size:16px;">❌ ยกเลิก</button>
+                    </div>
+                </div>
+            </div>
+            ```
             
             <section>
                 <h3>📂 โฟลเดอร์</h3>
@@ -413,11 +436,11 @@
     }
 
     // ==========================================
-    // 🌟 สมองชุดใหม่: ระบบ Sync ความเร็วสูง 0.1 วินาที
+    // 🗄️ สมองกลอัปเกรด: ระบบตู้เอกสาร (รองรับ 1,000,000+ คำ)
     // ==========================================
     async function loadData(uid) {
         try {
-            // 1. ดึงจากความจำเครื่อง (Cache) มาโชว์ก่อนทันที
+            // 1. โหลดจากความจำเครื่องให้หน้าจอขึ้นทันที 0.1 วิ
             let localFolders = JSON.parse(localStorage.getItem("folders")) || [];
             let localTags = JSON.parse(localStorage.getItem("tags")) || [];
             let localModified = parseInt(localStorage.getItem("lastModified")) || 0;
@@ -427,34 +450,43 @@
                 tags = localTags;
                 lastModified = localModified;
                 render(); 
-                if (typeof renderTagsUI === "function") renderTagsUI();
-                console.log("⚡ ข้อมูลจากเครื่องแสดงผลแล้วใน 0.1 วินาที");
+                if (typeof renderTagInputs === "function") renderTagInputs();
             }
 
-            // 2. เชื่อมต่อระบบ Real-time (Snapshot) - ข้อมูลจะอัปเดตเองเมื่อ Cloud เปลี่ยน
-            const docRef = db.collection("users").doc(uid);
-            docRef.onSnapshot((doc) => {
+            // 2. เปิดระบบเฝ้าดู "ตู้เอกสาร" บน Cloud
+            const userRef = db.collection("users").doc(uid);
+            userRef.onSnapshot(async (doc) => {
                 if (doc.exists) {
                     const data = doc.data();
                     const cloudModified = data.lastModified || 0;
+                    const folderCount = data.folderCount || 0; // ดูว่ามีกี่ลิ้นชัก
 
-                    // ถ้าข้อมูลบน Cloud ใหม่กว่าในเครื่อง ให้เปลี่ยนตาม Cloud ทันที
+                    // ถ้า Cloud มีของใหม่กว่า ให้ทยอยเปิดดึงทีละลิ้นชัก
                     if (cloudModified > lastModified) {
-                        folders = data.folders || [];
+                        showSyncStatus("กำลังดึงข้อมูลจากตู้เอกสาร...", "loading");
                         tags = data.tags || [];
                         lastModified = cloudModified;
+                        
+                        let newFolders = [];
+                        // วนลูปเปิดดึงข้อมูลทีละโฟลเดอร์
+                        for(let i = 0; i < folderCount; i++) {
+                            let folderDoc = await userRef.collection("foldersList").doc("folder_" + i).get();
+                            if(folderDoc.exists) {
+                                newFolders.push(folderDoc.data());
+                            }
+                        }
+                        folders = newFolders; 
 
-                        // เซฟลงเครื่องไว้ใช้ครั้งหน้า
+                        // เซฟลงเครื่อง
                         localStorage.setItem("folders", JSON.stringify(folders));
                         localStorage.setItem("tags", JSON.stringify(tags));
                         localStorage.setItem("lastModified", lastModified);
 
                         render();
-                        if (typeof renderTagsUI === "function") renderTagsUI();
-                        showSyncStatus("☁️ ซิงค์ข้อมูลล่าสุดเรียบร้อย", "success");
+                        if (typeof renderTagInputs === "function") renderTagInputs();
+                        showSyncStatus("☁️ โหลดข้อมูลล่าสุดเรียบร้อย", "success");
                     }
                 } else {
-                    // ถ้าเป็นผู้ใช้ใหม่ ยังไม่มีข้อมูลบน Cloud
                     saveData(); 
                 }
             });
@@ -464,6 +496,44 @@
             showSyncStatus("❌ โหลดข้อมูลไม่สำเร็จ", "error");
         }
     }
+
+    // ระบบเซฟแบบแยกโฟลเดอร์ลงลิ้นชัก (ป้องกันไฟล์แตก)
+    async function save() {
+        if (!currentUserUid) return;
+        lastModified = Date.now();
+        
+        // เซฟลงเครื่องกันเหนียว
+        localStorage.setItem("folders", JSON.stringify(folders));
+        localStorage.setItem("tags", JSON.stringify(tags));
+        localStorage.setItem("lastModified", lastModified);
+
+        showSyncStatus("กำลังแยกเอกสารลงลิ้นชัก...", "loading");
+        const userRef = db.collection("users").doc(currentUserUid);
+        
+        try {
+            // แปะป้ายหน้าตู้เอกสาร ว่าตอนนี้มีกี่โฟลเดอร์
+            await userRef.set({
+                tags: tags,
+                folderCount: folders.length,
+                lastModified: lastModified
+            }, { merge: true });
+
+            // 🌟 พระเอกอยู่ตรงนี้: วนลูปเซฟ "1 โฟลเดอร์ = 1 ลิ้นชัก" 
+            const promises = [];
+            for(let i = 0; i < folders.length; i++) {
+                const folderRef = userRef.collection("foldersList").doc("folder_" + i);
+                promises.push(folderRef.set(folders[i]));
+            }
+            await Promise.all(promises); // รอจนกว่าจะเก็บครบทุกโฟลเดอร์
+
+            showSyncStatus("☁️ บันทึกตู้เอกสารสำเร็จ", "success");
+        } catch(err) {
+            console.error("Save Error:", err);
+            showSyncStatus("❌ บันทึกไม่สำเร็จ", "error");
+        }
+    }
+    
+    function saveData() { save(); }
 
     // ฟังก์ชันสำหรับบันทึกข้อมูล (อัปเกรดให้มี Timestamp)
     function saveData() {
@@ -881,6 +951,8 @@
     }
 
     function deleteTag(i) { if (confirm(`ลบแท็ก "${tags[i].name}"?`)) { tags.splice(i, 1); save(); renderTagInputs(); } }
+
+    
 
     function importCards() {
         if (current === -1) return alert("กรุณาเลือกโฟลเดอร์ก่อนนำเข้า");
@@ -1465,6 +1537,8 @@
         document.getElementById("calendarGrid").innerHTML = html;
     }
 
+    
+
     function showDayDetails(y, m, d) {
         const targetDate = new Date(y, m, d).toDateString();
         document.getElementById("modalDateTitle").innerText = `📅 รายการวันที่ ${d}/${m+1}/${y}`;
@@ -1488,6 +1562,93 @@
     function closeModal() { document.getElementById("calendarModal").style.display = "none"; }
     function nextMonth(){ calDate.setMonth(calDate.getMonth()+1); renderCalendar(); }
     function prevMonth(){ calDate.setMonth(calDate.getMonth()-1); renderCalendar(); }
+
+    // ==========================================
+    // 💾 ระบบสำรองข้อมูล (Manual Backup / Restore)
+    // ==========================================
+
+    // 1. เปิดหน้าต่างตั้งชื่อเซฟ (ดึงวันที่ปัจจุบันมาตั้งเป็นชื่อเริ่มต้นให้ด้วย)
+    function openSaveModal() {
+        let today = new Date();
+        let dateStr = `${today.getFullYear()}${(today.getMonth()+1).toString().padStart(2,'0')}${today.getDate().toString().padStart(2,'0')}`;
+        document.getElementById("saveFileName").value = `Flashcard_Save_${dateStr}`;
+        document.getElementById("saveModal").style.display = "flex";
+    }
+
+    // 2. ปิดหน้าต่างเซฟ
+    function closeSaveModal() {
+        document.getElementById("saveModal").style.display = "none";
+    }
+
+    // 3. เริ่มบีบอัดข้อมูลและสร้างไฟล์ดาวน์โหลด (Save)
+    function executeSaveFile() {
+        let fileName = document.getElementById("saveFileName").value.trim();
+        if (!fileName) return alert("กรุณาตั้งชื่อไฟล์เซฟครับ");
+        
+        // รวบรวมข้อมูลโฟลเดอร์และแท็กทั้งหมดของคุณ
+        let saveData = {
+            folders: folders,
+            tags: tags,
+            lastModified: Date.now()
+        };
+
+        // แปลงข้อมูลเป็นข้อความ JSON
+        let dataStr = JSON.stringify(saveData, null, 2);
+        let blob = new Blob([dataStr], { type: "application/json" });
+        let url = URL.createObjectURL(blob);
+
+        // แอบสร้างปุ่มและสั่งกดดาวน์โหลดเข้าเครื่องอัตโนมัติ
+        let a = document.createElement("a");
+        a.href = url;
+        a.download = fileName.endsWith(".json") ? fileName : fileName + ".json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        closeSaveModal();
+        alert(`✅ สร้างไฟล์เซฟสำเร็จ!\nไฟล์ชื่อ "${a.download}" ถูกเก็บไว้ในโฟลเดอร์ Download ของคุณแล้วครับ`);
+    }
+
+    // 4. สั่งเปิดหน้าต่างให้เลือกไฟล์ (Load)
+    function triggerLoadSave() {
+        if(confirm("⚠️ คำเตือน: การโหลดไฟล์เซฟเก่า จะลบทับข้อมูลปัจจุบันในแอปและบน Cloud ของคุณทั้งหมด!\n\nคุณแน่ใจหรือไม่ว่าต้องการกู้คืนข้อมูลจากไฟล์เซฟ?")) {
+            document.getElementById("loadSaveInput").click();
+        }
+    }
+
+    // 5. อ่านไฟล์เซฟที่เลือกมา และเขียนทับระบบ
+    function handleLoadSave(event) {
+        let file = event.target.files[0];
+        if (!file) return;
+
+        let reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                // แกะกล่องข้อมูลจากไฟล์เซฟ
+                let loadedData = JSON.parse(e.target.result);
+                
+                // เช็คว่าไฟล์ที่เอามาใส่ใช่ไฟล์ของเว็บเราจริงๆ ไหม
+                if (loadedData.folders !== undefined && loadedData.tags !== undefined) {
+                    folders = loadedData.folders;
+                    tags = loadedData.tags;
+                    
+                    // บังคับเซฟลง Cloud เพื่อให้ Cloud ถูกทับด้วยข้อมูลจากเซฟตัวนี้
+                    save(); 
+                    render(); // วาดหน้าจอใหม่
+                    
+                    alert("✅ โหลดไฟล์เซฟและกู้คืนข้อมูลสำเร็จ!\nระบบได้อัปโหลดไฟล์เซฟนี้ขึ้นไปแทนที่บน Cloud เรียบร้อยแล้ว");
+                } else {
+                    alert("❌ ไฟล์เซฟไม่ถูกต้องหรือเสียหาย! กรุณาใช้ไฟล์ที่โหลดจากระบบนี้เท่านั้น");
+                }
+            } catch (err) {
+                alert("❌ เกิดข้อผิดพลาดในการอ่านไฟล์!\n" + err.message);
+            }
+            // ล้างค่าเพื่อให้สามารถกดโหลดไฟล์เดิมซ้ำได้ในอนาคต
+            document.getElementById("loadSaveInput").value = "";
+        };
+        reader.readAsText(file);
+    }
 
     window.onload = () => {
     // 1. อะไรที่เกี่ยวกับการดึงข้อมูลจากฐานข้อมูล ลบทิ้งให้หมด!
