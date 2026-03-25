@@ -436,11 +436,11 @@
     }
 
     // ==========================================
-    // 🌟 สมองชุดใหม่: ระบบ Sync ความเร็วสูง 0.1 วินาที
+    // 🗄️ สมองกลอัปเกรด: ระบบตู้เอกสาร (รองรับ 1,000,000+ คำ)
     // ==========================================
     async function loadData(uid) {
         try {
-            // 1. ดึงจากความจำเครื่อง (Cache) มาโชว์ก่อนทันที
+            // 1. โหลดจากความจำเครื่องให้หน้าจอขึ้นทันที 0.1 วิ
             let localFolders = JSON.parse(localStorage.getItem("folders")) || [];
             let localTags = JSON.parse(localStorage.getItem("tags")) || [];
             let localModified = parseInt(localStorage.getItem("lastModified")) || 0;
@@ -450,34 +450,43 @@
                 tags = localTags;
                 lastModified = localModified;
                 render(); 
-                if (typeof renderTagsUI === "function") renderTagsUI();
-                console.log("⚡ ข้อมูลจากเครื่องแสดงผลแล้วใน 0.1 วินาที");
+                if (typeof renderTagInputs === "function") renderTagInputs();
             }
 
-            // 2. เชื่อมต่อระบบ Real-time (Snapshot) - ข้อมูลจะอัปเดตเองเมื่อ Cloud เปลี่ยน
-            const docRef = db.collection("users").doc(uid);
-            docRef.onSnapshot((doc) => {
+            // 2. เปิดระบบเฝ้าดู "ตู้เอกสาร" บน Cloud
+            const userRef = db.collection("users").doc(uid);
+            userRef.onSnapshot(async (doc) => {
                 if (doc.exists) {
                     const data = doc.data();
                     const cloudModified = data.lastModified || 0;
+                    const folderCount = data.folderCount || 0; // ดูว่ามีกี่ลิ้นชัก
 
-                    // ถ้าข้อมูลบน Cloud ใหม่กว่าในเครื่อง ให้เปลี่ยนตาม Cloud ทันที
+                    // ถ้า Cloud มีของใหม่กว่า ให้ทยอยเปิดดึงทีละลิ้นชัก
                     if (cloudModified > lastModified) {
-                        folders = data.folders || [];
+                        showSyncStatus("กำลังดึงข้อมูลจากตู้เอกสาร...", "loading");
                         tags = data.tags || [];
                         lastModified = cloudModified;
+                        
+                        let newFolders = [];
+                        // วนลูปเปิดดึงข้อมูลทีละโฟลเดอร์
+                        for(let i = 0; i < folderCount; i++) {
+                            let folderDoc = await userRef.collection("foldersList").doc("folder_" + i).get();
+                            if(folderDoc.exists) {
+                                newFolders.push(folderDoc.data());
+                            }
+                        }
+                        folders = newFolders; 
 
-                        // เซฟลงเครื่องไว้ใช้ครั้งหน้า
+                        // เซฟลงเครื่อง
                         localStorage.setItem("folders", JSON.stringify(folders));
                         localStorage.setItem("tags", JSON.stringify(tags));
                         localStorage.setItem("lastModified", lastModified);
 
                         render();
-                        if (typeof renderTagsUI === "function") renderTagsUI();
-                        showSyncStatus("☁️ ซิงค์ข้อมูลล่าสุดเรียบร้อย", "success");
+                        if (typeof renderTagInputs === "function") renderTagInputs();
+                        showSyncStatus("☁️ โหลดข้อมูลล่าสุดเรียบร้อย", "success");
                     }
                 } else {
-                    // ถ้าเป็นผู้ใช้ใหม่ ยังไม่มีข้อมูลบน Cloud
                     saveData(); 
                 }
             });
@@ -487,6 +496,44 @@
             showSyncStatus("❌ โหลดข้อมูลไม่สำเร็จ", "error");
         }
     }
+
+    // ระบบเซฟแบบแยกโฟลเดอร์ลงลิ้นชัก (ป้องกันไฟล์แตก)
+    async function save() {
+        if (!currentUserUid) return;
+        lastModified = Date.now();
+        
+        // เซฟลงเครื่องกันเหนียว
+        localStorage.setItem("folders", JSON.stringify(folders));
+        localStorage.setItem("tags", JSON.stringify(tags));
+        localStorage.setItem("lastModified", lastModified);
+
+        showSyncStatus("กำลังแยกเอกสารลงลิ้นชัก...", "loading");
+        const userRef = db.collection("users").doc(currentUserUid);
+        
+        try {
+            // แปะป้ายหน้าตู้เอกสาร ว่าตอนนี้มีกี่โฟลเดอร์
+            await userRef.set({
+                tags: tags,
+                folderCount: folders.length,
+                lastModified: lastModified
+            }, { merge: true });
+
+            // 🌟 พระเอกอยู่ตรงนี้: วนลูปเซฟ "1 โฟลเดอร์ = 1 ลิ้นชัก" 
+            const promises = [];
+            for(let i = 0; i < folders.length; i++) {
+                const folderRef = userRef.collection("foldersList").doc("folder_" + i);
+                promises.push(folderRef.set(folders[i]));
+            }
+            await Promise.all(promises); // รอจนกว่าจะเก็บครบทุกโฟลเดอร์
+
+            showSyncStatus("☁️ บันทึกตู้เอกสารสำเร็จ", "success");
+        } catch(err) {
+            console.error("Save Error:", err);
+            showSyncStatus("❌ บันทึกไม่สำเร็จ", "error");
+        }
+    }
+    
+    function saveData() { save(); }
 
     // ฟังก์ชันสำหรับบันทึกข้อมูล (อัปเกรดให้มี Timestamp)
     function saveData() {
