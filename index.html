@@ -413,6 +413,76 @@
     }
 
     // ==========================================
+    // 🌟 สมองชุดใหม่: ระบบ Sync ความเร็วสูง 0.1 วินาที
+    // ==========================================
+    async function loadData(uid) {
+        try {
+            // 1. ดึงจากความจำเครื่อง (Cache) มาโชว์ก่อนทันที
+            let localFolders = JSON.parse(localStorage.getItem("folders")) || [];
+            let localTags = JSON.parse(localStorage.getItem("tags")) || [];
+            let localModified = parseInt(localStorage.getItem("lastModified")) || 0;
+
+            if (localFolders.length > 0) {
+                folders = localFolders;
+                tags = localTags;
+                lastModified = localModified;
+                render(); 
+                if (typeof renderTagsUI === "function") renderTagsUI();
+                console.log("⚡ ข้อมูลจากเครื่องแสดงผลแล้วใน 0.1 วินาที");
+            }
+
+            // 2. เชื่อมต่อระบบ Real-time (Snapshot) - ข้อมูลจะอัปเดตเองเมื่อ Cloud เปลี่ยน
+            const docRef = db.collection("users").doc(uid);
+            docRef.onSnapshot((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    const cloudModified = data.lastModified || 0;
+
+                    // ถ้าข้อมูลบน Cloud ใหม่กว่าในเครื่อง ให้เปลี่ยนตาม Cloud ทันที
+                    if (cloudModified > lastModified) {
+                        folders = data.folders || [];
+                        tags = data.tags || [];
+                        lastModified = cloudModified;
+
+                        // เซฟลงเครื่องไว้ใช้ครั้งหน้า
+                        localStorage.setItem("folders", JSON.stringify(folders));
+                        localStorage.setItem("tags", JSON.stringify(tags));
+                        localStorage.setItem("lastModified", lastModified);
+
+                        render();
+                        if (typeof renderTagsUI === "function") renderTagsUI();
+                        showSyncStatus("☁️ ซิงค์ข้อมูลล่าสุดเรียบร้อย", "success");
+                    }
+                } else {
+                    // ถ้าเป็นผู้ใช้ใหม่ ยังไม่มีข้อมูลบน Cloud
+                    saveData(); 
+                }
+            });
+
+        } catch (e) {
+            console.error("Load Error:", e);
+            showSyncStatus("❌ โหลดข้อมูลไม่สำเร็จ", "error");
+        }
+    }
+
+    // ฟังก์ชันสำหรับบันทึกข้อมูล (อัปเกรดให้มี Timestamp)
+    function saveData() {
+        if (!currentUserUid) return;
+        lastModified = Date.now();
+        localStorage.setItem("folders", JSON.stringify(folders));
+        localStorage.setItem("tags", JSON.stringify(tags));
+        localStorage.setItem("lastModified", lastModified);
+
+        db.collection("users").doc(currentUserUid).set({
+            folders: folders,
+            tags: tags,
+            lastModified: lastModified
+        }, { merge: true }).then(() => {
+            showSyncStatus("☁️ บันทึกขึ้น Cloud แล้ว", "success");
+        });
+    }
+
+    // ==========================================
     // 🛡️ ระบบจัดการการเข้าถึงและการดึงข้อมูล 
     // ==========================================
     auth.onAuthStateChanged(async (user) => {
