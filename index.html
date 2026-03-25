@@ -3,148 +3,262 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flashcard (Ultimate Edition) - Cloud Synced & Upgraded</title>
+    <title>Flashcard (Ultimate Edition) - Fast Sync & Full Features</title>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    
     <style>
-        /* --- CSS หลัก --- */
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f8; padding: 20px; color: #333; line-height: 1.6; }
-        #app-container { max-width: 900px; margin: 0 auto; position: relative; }
+        /* ==========================================
+           สไตล์ UI จาก Add0.1 (สวยงาม คลีน โหลดเร็ว)
+           ========================================== */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f8; padding: 20px; color: #333; line-height: 1.6; margin: 0; }
+        #app-container { max-width: 950px; margin: 0 auto; position: relative; padding-bottom: 50px; }
         
-        #menuBtn { position: fixed; top: 12px; left: 15px; font-size: 26px; cursor: pointer; z-index: 1001; background: white; padding: 5px 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        #sidebar { position: fixed; top: 0; left: -260px; width: 260px; height: 100%; background: white; box-shadow: 5px 0 25px rgba(0,0,0,0.2); transition: 0.25s; z-index: 1002; padding-top: 20px; }
-        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); display: none; z-index: 1001; }
-        
-        .sidebar-item { padding: 12px 20px; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: 0.2s; display: flex; align-items: center; gap: 10px; }
-        .sidebar-item:hover { background: #f8fafc; color: #2563eb; }
-        
-        .card-box { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; margin-bottom: 25px; min-height: 220px; display: flex; flex-direction: column; justify-content: center; cursor: pointer; transition: transform 0.2s; position: relative; }
-        .card-box:active { transform: scale(0.98); }
-        
-        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+        /* Navigation & Sidebar */
+        #menuBtn { position: fixed; top: 12px; left: 15px; font-size: 26px; cursor: pointer; z-index: 1001; background: white; padding: 5px 12px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        #sidebar { position: fixed; top: 0; left: -280px; width: 260px; height: 100%; background: white; box-shadow: 5px 0 25px rgba(0,0,0,0.2); transition: 0.3s; z-index: 1002; padding-top: 20px; overflow-y: auto; }
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; z-index: 1000; }
+        .menuItem { padding: 14px 20px; cursor: pointer; font-size: 16px; transition: 0.2s; font-weight: 500; border-bottom: 1px solid #f1f5f9; }
+        .menuItem:hover { background: #f8fafc; color: #2563eb; padding-left: 25px; }
+
+        /* Sync Status & Alerts */
+        #syncStatus { display:none; position:fixed; top:15px; left:50%; transform:translateX(-50%); padding:8px 20px; border-radius:20px; font-size:14px; font-weight:bold; box-shadow:0 4px 10px rgba(0,0,0,0.2); z-index:9999; transition:0.3s; }
+        .status-loading { background: #fef3c7; color: #b45309; }
+        .status-success { background: #d1fae5; color: #047857; }
+        .status-error { background: #fee2e2; color: #b91c1c; }
+
+        /* Buttons & Inputs */
+        button { padding: 10px 18px; border: none; border-radius: 8px; cursor: pointer; margin: 4px; transition: 0.2s; font-weight: bold; font-size: 14px; }
+        button:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .btn-primary { background: #2563eb; color: white; }
-        .btn-danger { background: #ef4444; color: white; }
         .btn-success { background: #10b981; color: white; }
-        .btn:hover { opacity: 0.9; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-warning { background: #f59e0b; color: white; }
+        .btn-secondary { background: #64748b; color: white; }
+        input, textarea, select { padding: 12px; margin: 5px 0; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; box-sizing: border-box; }
+
+        /* Folders & Flashcards */
+        .folder { background: white; padding: 15px 20px; border-radius: 12px; display: inline-block; margin: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 2px solid transparent; }
+        .folder:hover { border-color: #6366f1; transform: translateY(-2px); }
+        .folder.active { background: #6366f1; color: white; }
         
-        #sync-status { font-size: 13px; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; border-radius: 8px; font-weight: bold;}
-        .status-loading { color: #f59e0b; background: #fef3c7;}
-        .status-success { color: #10b981; background: #d1fae5;}
-        .status-error { color: #ef4444; background: #fee2e2;}
-        
-        #loadingScreen { position: fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; flex-direction:column; justify-content:center; align-items:center; }
-        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #2563eb; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        .card-box { background: white; padding: 40px 20px; margin: 20px auto; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); font-size: 26px; text-align: center; position: relative; max-width: 600px; cursor: pointer; min-height: 150px; display: flex; flex-direction: column; justify-content: center; transition: 0.2s; }
+        .card-box:active { transform: scale(0.98); }
+
+        /* Tags */
+        .tag-badge { padding: 4px 10px; border-radius: 15px; margin: 4px; display: inline-flex; align-items: center; font-size: 12px; font-weight: bold; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .tag-selector-container { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 12px; margin: 10px 0; }
+
+        /* Calendar Grid */
+        #calendarGrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 15px; }
+        .dayCell { background: white; padding: 10px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); min-height: 70px; font-size: 14px; position: relative; cursor: pointer; transition: 0.2s; }
+        .dayCell:hover { background: #f1f5f9; }
+        .dayHeader { font-weight: bold; text-align: center; color: #64748b; padding: 10px 0; }
+        .due-dot { position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); width: 8px; height: 8px; background: #ef4444; border-radius: 50%; }
+
+        /* Helpers */
+        .section-box { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); margin-bottom: 25px; border: 1px solid #e2e8f0; }
+        .spinner { width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #2563eb; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        #calendar-container { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-top: 20px; }
-        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 15px; }
-        .cal-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; position: relative; cursor: pointer; background: #f8fafc; }
-        .cal-day:hover { background: #e2e8f0; }
-        .cal-today { border: 2px solid #2563eb; font-weight: bold; background: #eff6ff;}
-        .due-dot { width: 6px; height: 6px; background: #ef4444; border-radius: 50%; position: absolute; bottom: 4px; }
-        
-        #calendarModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 2000; }
-        .modal-content { background: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 400px; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2);}
-        
-        .folder-card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); cursor: pointer; transition: 0.2s; border: 1px solid #e2e8f0;}
-        .folder-card:hover { border-color: #2563eb; transform: translateY(-2px);}
-        
-        input[type="text"] { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; width: 100%; box-sizing: border-box; margin-bottom: 10px;}
     </style>
 </head>
 <body>
 
-<div id="loadingScreen">
-    <div class="spinner"></div>
-    <p id="loadingText" style="color: #64748b; font-weight: bold;">กำลังเตรียมความพร้อม...</p>
-</div>
-
 <div id="app-container">
-    
-    <div id="loginPrompt" style="display: none; height: 80vh; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
-        <h1 style="font-size: 2.5rem; margin-bottom: 10px;">🎴 Flashcard Cloud</h1>
-        <p style="color: #64748b; margin-bottom: 30px;">เข้าสู่ระบบเพื่อซิงค์ข้อมูลการเรียนของคุณ</p>
-        <button class="btn btn-primary" onclick="login()" style="padding: 15px 40px; font-size: 18px;">
-            ลงชื่อเข้าใช้ด้วย Google
+    <div id="syncStatus"></div>
+
+    <div id="auth-controls" style="position: fixed; top: 12px; right: 15px; z-index: 1001; display: flex; align-items: center; gap: 10px;">
+        <span id="userInfo" style="font-size: 14px; font-weight: bold; color: #1e293b; background: white; padding: 8px 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: none;"></span>
+        <button id="logoutBtn" onclick="logout()" class="btn-danger" style="margin: 0; display: none;">🚪 ออกจากระบบ</button>
+    </div>
+
+    <div id="loadingScreen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh; text-align: center;">
+        <div class="spinner"></div>
+        <h2 style="color: #64748b;">กำลังเตรียมความพร้อมข้อมูลของคุณ...</h2>
+    </div>
+
+    <div id="loginPrompt" style="display: none; flex-direction: column; align-items: center; justify-content: center; height: 80vh; text-align: center;">
+        <div style="font-size: 70px; margin-bottom: 10px;">🎴</div>
+        <h1 style="color: #1e293b; margin-bottom: 5px;">Flashcard Ultimate</h1>
+        <p style="color: #64748b; font-size: 16px; margin-bottom: 30px;">ระบบเชื่อมต่อ Cloud อัจฉริยะ โหลดไว ทำงานได้แม้ไม่มีเน็ต</p>
+        <button onclick="login()" class="btn-primary" style="padding: 15px 35px; font-size: 18px; border-radius: 12px; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);">
+            🔑 เข้าสู่ระบบด้วย Google
         </button>
     </div>
 
     <div id="main-app-content" style="display: none;">
+        
         <div id="menuBtn" onclick="toggleSidebar()">☰</div>
         <div id="overlay" onclick="toggleSidebar()"></div>
-        
         <div id="sidebar">
-            <div class="sidebar-item" onclick="showPage('home')">🏠 หน้าแรก</div>
-            <div class="sidebar-item" onclick="showPage('calendar')">📅 ปฏิทินทบทวน</div>
-            <div class="sidebar-item" onclick="showPage('manage')">⚙️ จัดการโฟลเดอร์</div>
-            <hr style="border: 0; border-top: 1px solid #eee; margin: 10px 0;">
-            <div id="userInfo" style="padding: 10px 20px; font-size: 13px; color: #64748b; font-weight: bold;"></div>
-            <div class="sidebar-item" onclick="logout()" style="color: #ef4444;">🚪 ออกจากระบบ</div>
+            <h3 style="padding-left:20px; color:#2563eb; margin-bottom: 20px;">📚 เมนูหลัก</h3>
+            <div class="menuItem" onclick="showPage('homePage')">🏠 หน้าแรก (จัดการการ์ด)</div>
+            <div class="menuItem" onclick="showPage('searchPage'); initSearchPage();">🔍 ค้นหาขั้นสูง & ส่งออก</div>
+            <div class="menuItem" onclick="showPage('calendarPage'); renderCalendar();">📅 ปฏิทินทบทวน</div>
+            <div class="menuItem" onclick="showPage('tagManagerPage'); renderTagManagerList();">🏷️ จัดการกฎของแท็ก</div>
         </div>
 
-        <div id="sync-status"></div>
+        <div id="homePage">
+            <h1 style="color: #1e293b; margin-top: 40px;">📚 พื้นที่การเรียนรู้</h1>
+            
+            <div class="section-box" style="background: #f8fafc;">
+                <h3 style="margin-top: 0;">📂 1. เลือกหรือสร้างโฟลเดอร์</h3>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+                    <input id="folderName" placeholder="ตั้งชื่อโฟลเดอร์ใหม่..." style="flex-grow: 1;">
+                    <button onclick="addFolder()" class="btn-success">+ สร้างโฟลเดอร์</button>
+                </div>
+                <div id="foldersList"></div>
+            </div>
 
-        <div id="page-home">
+            <h3 id="currentFolderTitle" style="color: #2563eb; text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">กรุณาเลือกโฟลเดอร์ด้านบน</h3>
+
+            <div id="createCardSection" class="section-box" style="display: none;">
+                <h3 style="margin-top: 0;">➕ 2. เพิ่มการ์ดใหม่</h3>
+                <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+                    <input id="front" placeholder="คำศัพท์ (ด้านหน้า)" style="flex: 1; min-width: 200px;">
+                    <input id="back" placeholder="ความหมาย (ด้านหลัง)" style="flex: 1; min-width: 200px;">
+                </div>
+                <div class="tag-selector-container">
+                    <div style="margin-bottom: 10px; font-size: 13px; color: #64748b;">
+                        <strong>🏷️ เลือกแท็กให้การ์ด:</strong>
+                        <button onclick="selectAllTags('multiTagInput')" class="btn-secondary" style="padding: 4px 8px; font-size: 11px;">✅ เลือกทั้งหมด</button>
+                        <button onclick="deselectAllTags('multiTagInput')" class="btn-secondary" style="padding: 4px 8px; font-size: 11px;">❌ ล้าง</button>
+                    </div>
+                    <div id="multiTagInput" style="display: flex; flex-wrap: wrap; gap: 5px;"></div>
+                </div>
+                <button onclick="addCard()" class="btn-primary" style="width: 100%; padding: 12px;">บันทึกการ์ดลงโฟลเดอร์ (Cloud)</button>
+            </div>
+
+            <div id="folderControlsSection" style="text-align: center; margin: 30px 0; display: none;">
+                <button onclick="startPlayMode()" class="btn-success" style="padding: 15px 30px; font-size: 18px; box-shadow: 0 4px 10px rgba(16,185,129,0.3);">▶️ เริ่มเรียนโฟลเดอร์นี้</button>
+                <button onclick="showPage('listView'); renderListView();" class="btn-secondary">📋 ดูรายการคำศัพท์</button>
+                <button onclick="toggleShuffle()" id="shuffleBtn" style="background:#e2e8f0; color:#333;">🔀 สุ่มการ์ด: ปิด</button>
+            </div>
+
+            <div class="section-box">
+                <h3 style="margin-top: 0;">🏷️ สร้างและจัดการแท็ก</h3>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 15px;">
+                    <input id="tagName" placeholder="ชื่อแท็กใหม่" style="flex: 1; min-width: 120px;">
+                    <input id="tagInterval" type="number" placeholder="วันทบทวน" style="width: 90px;" title="จำนวนวันที่จะให้ทบทวน">
+                    <input type="color" id="tagColor" value="#3b82f6" style="width: 45px; height: 42px; padding: 2px; cursor: pointer; border-radius: 8px;">
+                    <button onclick="createTag()" class="btn-primary">สร้างแท็ก</button>
+                </div>
+                <div id="tagList" style="display: flex; flex-wrap: wrap; gap: 5px;"></div>
+            </div>
+
+            <div id="bulkImportSection" class="section-box" style="display: none;">
+                <h3 style="margin-top: 0;">📥 นำเข้าข้อมูลจำนวนมาก (Bulk Import)</h3>
+                <textarea id="bulk" rows="4" style="width:100%; resize: vertical;" placeholder="Apple = แอปเปิ้ล&#10;Banana = กล้วย"></textarea>
+                <div style="background: #f8fafc; padding: 15px; border-radius: 10px; margin-top: 10px; font-size: 14px; display: flex; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <span>คั่นคำด้วย:</span> 
+                    <select id="sepTerm"><option value="=">=</option><option value="tab">Tab</option><option value="custom">กำหนดเอง</option></select>
+                    <input id="customSepTerm" placeholder="ระบุ" style="width:60px; display:none; padding: 6px;">
+                    
+                    <span>คั่นใบด้วย:</span> 
+                    <select id="sepCard"><option value="newline">บรรทัดใหม่</option><option value="custom">กำหนดเอง</option></select>
+                    <input id="customSepCard" placeholder="ระบุ" style="width:60px; display:none; padding: 6px;">
+                    
+                    <button onclick="importBulkCards()" class="btn-warning">นำเข้าทันที</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="playArea" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <button onclick="showPage('homePage')" class="btn-secondary">⬅️ กลับ</button>
+                <div id="playProgress" style="font-weight: bold; color: #64748b;"></div>
+            </div>
+            
+            <div id="currentCardTags" style="text-align: center; margin-bottom: 10px;"></div>
+            
+            <div class="card-box" id="flashcardBox" onclick="flipCard()">
+                <div id="cardFront" style="font-weight: bold; color: #1e293b;"></div>
+                <div id="cardBack" style="display: none; margin-top: 25px; color: #2563eb; border-top: 2px dashed #e2e8f0; padding-top: 25px;"></div>
+                <div id="flipHint" style="font-size: 14px; color: #94a3b8; margin-top: 30px; font-weight: normal;">แตะเพื่อดูคำตอบ</div>
+            </div>
+
+            <div id="actionButtons" style="display: none; justify-content: center; gap: 10px; flex-wrap: wrap;">
+                <button onclick="answerCard(1)" class="btn-danger" style="padding: 15px 25px;">🔴 ลืม (เริ่มใหม่)</button>
+                <button onclick="answerCard(3)" class="btn-warning" style="padding: 15px 25px;">🟡 นึกนาน (ยาก)</button>
+                <button onclick="answerCard(5)" class="btn-success" style="padding: 15px 25px;">🟢 จำได้แม่น</button>
+            </div>
+        </div>
+
+        <div id="listView" style="display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 id="folderTitle">เลือกโฟลเดอร์เพื่อเริ่มทบทวน</h2>
-                <div id="cardCounter" style="font-weight: bold; color: #64748b;"></div>
+                <h2 style="margin: 0;" id="listTitle">📋 รายการการ์ด</h2>
+                <button onclick="showPage('homePage')" class="btn-secondary">⬅️ กลับ</button>
             </div>
-
-            <div id="folderSelection" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;"></div>
-
-            <div id="cardDisplay" style="display: none;">
-                <div class="card-box" onclick="flipCard()">
-                    <div id="cardContent" style="font-size: 28px; font-weight: bold;"></div>
-                    <div id="cardHint" style="margin-top: 20px; color: #94a3b8; font-size: 14px;">คลิกเพื่อดูคำตอบ</div>
-                </div>
-
-                <div id="actionButtons" style="display: none; justify-content: center; gap: 15px;">
-                    <button class="btn btn-danger" onclick="answer(1)">🔴 จำไม่ได้</button>
-                    <button class="btn btn-primary" onclick="answer(3)">🟡 เกือบได้</button>
-                    <button class="btn btn-success" onclick="answer(5)">🟢 จำได้แม่น</button>
-                </div>
-            </div>
+            <div id="listContent"></div>
         </div>
 
-        <div id="page-calendar" style="display: none;">
-            <div id="calendar-container">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <button onclick="prevMonth()" class="btn btn-primary">◀</button>
-                    <h3 id="calMonthTitle" style="margin: 0;"></h3>
-                    <button onclick="nextMonth()" class="btn btn-primary">▶</button>
-                </div>
-                <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-weight: bold; color: #64748b; font-size: 14px;">
-                    <div>อา</div><div>จ</div><div>อ</div><div>พ</div><div>พฤ</div><div>ศ</div><div>ส</div>
-                </div>
-                <div class="cal-grid" id="calendarGrid"></div>
+        <div id="searchPage" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0;">🔍 ค้นหาและจัดการขั้นสูง</h2>
+                <button onclick="showPage('homePage')" class="btn-secondary">❌ ปิด</button>
             </div>
-        </div>
+            
+            <div class="section-box">
+                <input id="advSearchInput" oninput="executeAdvancedSearch()" placeholder="พิมพ์คำศัพท์ที่ต้องการค้นหา..." style="width:100%; padding:15px; font-size: 16px;">
+                <select id="advFolderFilter" onchange="executeAdvancedSearch()" style="width:100%; padding:12px; margin-top: 10px;">
+                    <option value="all">-- ค้นหาทุกโฟลเดอร์ --</option>
+                </select>
+                <div style="margin-top: 15px; font-size: 14px; color: #64748b;"><strong>กรองด้วยแท็ก:</strong></div>
+                <div id="searchTagFilters" style="display:flex; flex-wrap:wrap; gap:8px; margin-top: 10px;"></div>
+            </div>
 
-        <div id="page-manage" style="display: none;">
-            <h3>📂 จัดการโฟลเดอร์และเนื้อหา</h3>
-            <div style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background: white; padding: 10px 15px; border-radius: 10px; border: 1px solid #e2e8f0;">
+                <div id="searchResultsCount" style="font-weight: bold; color: #2563eb;"></div>
                 <div style="display: flex; gap: 10px;">
-                    <input type="text" id="newFolderName" placeholder="ชื่อโฟลเดอร์ใหม่..." style="margin-bottom: 0;">
-                    <button class="btn btn-primary" onclick="addFolder()" style="white-space: nowrap;">+ เพิ่มโฟลเดอร์</button>
+                    <button onclick="selectAllSearchCards(true)" class="btn-primary" style="font-size: 12px; padding: 6px 10px;">✅ เลือกทั้งหมด</button>
+                    <button onclick="selectAllSearchCards(false)" class="btn-secondary" style="font-size: 12px; padding: 6px 10px;">ล้าง</button>
                 </div>
             </div>
-            <div id="folderManageList"></div>
+
+            <div id="advSearchResult"></div>
+
+            <div id="searchBulkActionOuter" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); width:90%; max-width:700px; background:#1e293b; color:white; padding:15px; border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,0.3); z-index:2000;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <span id="searchSelectedCount" style="font-weight: bold;">เลือกแล้ว 0 ใบ</span>
+                    <button onclick="deleteSelectedFromSearch()" class="btn-danger" style="padding:8px 12px;">🗑️ ลบที่เลือก</button>
+                </div>
+            </div>
         </div>
+
+        <div id="tagManagerPage" style="display: none;">
+            <h2>🏷️ จัดการกฎอัตโนมัติของแท็ก</h2>
+            <p style="color: #64748b;">ตั้งค่าให้เปลี่ยนแท็กอัตโนมัติเมื่อตอบถูก (Promote) หรือตอบผิด (Demote)</p>
+            <div id="tagEditorList" class="section-box"></div>
+            <button onclick="showPage('homePage')" class="btn-secondary" style="width: 100%;">⬅️ กลับหน้าหลัก</button>
+        </div>
+
+        <div id="calendarPage" style="display: none;">
+            <div class="section-box">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <button onclick="prevMonth()" class="btn-secondary">◀</button>
+                    <span id="monthTitle" style="font-weight:bold; font-size:20px; color: #1e293b;"></span>
+                    <button onclick="nextMonth()" class="btn-secondary">▶</button>
+                </div>
+                <div id="calendarGrid"></div>
+            </div>
+            <button onclick="showPage('homePage')" class="btn-secondary" style="width: 100%;">⬅️ กลับหน้าหลัก</button>
+        </div>
+
     </div>
 </div>
 
-<div id="calendarModal">
-    <div class="modal-content">
-        <h3 id="modalDateTitle" style="margin-top: 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">📅 รายการวันที่</h3>
+<div id="calendarModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; justify-content:center; align-items:center;">
+    <div style="background:white; width:90%; max-width:400px; border-radius:16px; padding:20px; max-height: 80vh; overflow-y: auto;">
+        <h3 id="modalDateTitle" style="margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">📅 รายการวันที่</h3>
         <div id="modalCardList"></div>
-        <button class="btn btn-primary" onclick="closeModal()" style="width: 100%; margin-top: 15px;">ปิด</button>
+        <button onclick="closeModal()" class="btn-secondary" style="width: 100%; margin-top: 15px;">ปิดหน้าต่าง</button>
     </div>
 </div>
 
 <script>
     // ==========================================
-    // 1. การตั้งค่า FIREBASE (แก้ไข API KEY ตามของคุณ)
+    // 🌟 ระบบเชื่อมต่อ FIREBASE & OFFLINE PERSISTENCE (จาก Add0.1)
     // ==========================================
     const firebaseConfig = {
         apiKey: "AIzaSyCmbTUstDsHGQbL_x3Xf3yAjGFgQY5PGwM",
@@ -160,345 +274,587 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // ==========================================
-    // 🟢 เทคนิคที่ 1: Offline Persistence (เปิดใช้งานระบบจำข้อมูลในเครื่อง)
-    // ==========================================
+    // เปิดความจำฝังเครื่อง โหลดเร็วติดจรวด 0.1 วินาที
     db.enablePersistence().catch((err) => {
-        if (err.code == 'failed-precondition') {
-            console.warn("⚠️ เปิด Offline Mode ไม่ได้: อาจเปิดหลายแท็บ");
-        } else if (err.code == 'unimplemented') {
-            console.warn("⚠️ เบราว์เซอร์ไม่รองรับ Offline Mode");
-        }
+        console.warn("⚠️ Offline Mode Error:", err.message);
     });
-
     auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
 
     // ==========================================
-    // ตัวแปร Global ของระบบคุณ
+    // 🌟 ตัวแปร Global ของระบบ (รวมเฟส 2 และ Add0.1)
     // ==========================================
     let folders = [];
     let tags = [];
-    let currentFolderIdx = -1;
-    let currentCardIdx = -1;
-    let isFlipped = false;
-    let playing = false;
     let currentUserUid = null;
+    let currentFolderIdx = -1;
+    
+    // สถานะการเล่น (Play Mode)
+    let playing = false;
+    let isShuffle = false;
+    let sessionCards = [];
+    let currentCardIdx = 0;
+    let isFlipped = false;
+
+    // สถานะอื่นๆ
     let calDate = new Date();
-    let pendingCards = [];
+    let selectedSearchTags = [];
 
     // ==========================================
-    // ฟังก์ชัน Login / Logout
+    // 🌟 Auth Guard: จัดคิวการโหลด (แก้คอขวด)
     // ==========================================
+    auth.onAuthStateChanged((user) => {
+        const loading = document.getElementById("loadingScreen");
+        const prompt = document.getElementById("loginPrompt");
+        const app = document.getElementById("main-app-content");
+
+        if (user) {
+            currentUserUid = user.uid;
+            document.getElementById("userInfo").innerText = "👤 " + user.displayName;
+            document.getElementById("userInfo").style.display = "inline-block";
+            document.getElementById("logoutBtn").style.display = "inline-block";
+            
+            loading.style.display = "none";
+            prompt.style.display = "none";
+            app.style.display = "block";
+
+            // สั่งโหลดข้อมูล "หลัง" ล็อกอินสำเร็จเท่านั้น
+            loadData(user.uid);
+        } else {
+            currentUserUid = null;
+            loading.style.display = "none";
+            prompt.style.display = "flex";
+            app.style.display = "none";
+        }
+    });
+
     function login() {
-        const loadingScreen = document.getElementById("loadingScreen");
-        if (loadingScreen) loadingScreen.style.display = "flex"; 
+        document.getElementById("loadingScreen").style.display = "flex";
         const provider = new firebase.auth.GoogleAuthProvider();
         auth.signInWithPopup(provider).catch(e => {
-            if (loadingScreen) loadingScreen.style.display = "none";
-            alert("Login Error: " + e.message);
+            document.getElementById("loadingScreen").style.display = "none";
+            alert("Error: " + e.message);
         });
     }
 
     function logout() {
-        auth.signOut().then(() => {
-            localStorage.clear();
-            location.reload();
-        });
+        auth.signOut().then(() => location.reload());
     }
 
     // ==========================================
-    // 🟢 เทคนิคที่ 2: ระบบกล้องวงจรปิด (onSnapshot) โหลดเร็วปรื๊ด
+    // 🌟 โหลด & บันทึกข้อมูล (แบบกล้องวงจรปิด onSnapshot)
     // ==========================================
     function loadData(uid) {
-        setSyncStatus("กำลังซิงค์ข้อมูล...", "loading");
+        showSyncStatus("กำลังซิงค์ข้อมูล...", "loading");
 
-        // เฝ้าดูข้อมูลจาก Cloud และดึงจาก Cache มาโชว์ทันที
         db.collection("users").doc(uid).onSnapshot((doc) => {
             if (doc.exists) {
                 const data = doc.data();
                 folders = data.folders || [];
                 tags = data.tags || [];
                 
-                // อัปเดตหน้าจอทันที
-                render(); 
-                if(currentFolderIdx !== -1 && playing) {
-                    // กำลังเล่นการ์ดอยู่ ให้เล่นต่อ
-                } else if(currentFolderIdx !== -1) {
-                    viewCards(currentFolderIdx);
-                }
+                // อัปเดตหน้าจอทันทีเมื่อมีข้อมูลใหม่
+                renderFolders();
+                renderTagsUI();
                 
-                if(doc.metadata.fromCache) {
-                    setSyncStatus("⚡ โหลดจากเครื่อง (Offline Mode)", "success");
+                if (currentFolderIdx !== -1 && !playing) {
+                    // Refresh UI ของโฟลเดอร์ปัจจุบันถ้าเปิดค้างไว้
+                }
+
+                if (doc.metadata.fromCache) {
+                    showSyncStatus("⚡ โหลดจากเครื่อง (Offline)", "success");
                 } else {
-                    setSyncStatus("☁️ ข้อมูลตรงกับ Cloud แล้ว", "success");
+                    showSyncStatus("☁️ ตรงกับ Cloud แล้ว", "success");
                 }
             } else {
-                folders = [];
-                tags = [];
-                render();
-                setSyncStatus("✅ พร้อมใช้งาน (ผู้ใช้ใหม่)", "success");
+                folders = []; tags = []; renderFolders(); renderTagsUI();
+                showSyncStatus("✅ ยินดีต้อนรับ", "success");
             }
-            renderCalendar();
-        }, (error) => {
-            console.error("Error:", error);
-            setSyncStatus("❌ ขาดการเชื่อมต่อ", "error");
+        }, error => {
+            console.error(error);
+            showSyncStatus("❌ ขาดการเชื่อมต่อ", "error");
         });
     }
 
-    // ==========================================
-    // 🟢 เทคนิคที่ 3: Auth Guard (เช็คบัตรก่อนดึงข้อมูล แก้ F5)
-    // ==========================================
-    auth.onAuthStateChanged((user) => {
-        const loadingScreen = document.getElementById("loadingScreen");
-        const loginPrompt = document.getElementById("loginPrompt");
-        const mainAppContent = document.getElementById("main-app-content");
-        const userInfo = document.getElementById("userInfo");
-
-        if (user) {
-            // ล็อกอินแล้ว
-            currentUserUid = user.uid;
-            if(userInfo) userInfo.innerText = "👤 " + user.displayName;
-            
-            if(loadingScreen) loadingScreen.style.display = "none";
-            if(loginPrompt) loginPrompt.style.display = "none";
-            if(mainAppContent) mainAppContent.style.display = "block";
-
-            // สั่งดึงข้อมูลตรงนี้เท่านั้น
-            loadData(user.uid); 
-        } else {
-            // ยังไม่ล็อกอิน
-            currentUserUid = null;
-            if(loadingScreen) loadingScreen.style.display = "none";
-            if(loginPrompt) loginPrompt.style.display = "flex";
-            if(mainAppContent) mainAppContent.style.display = "none";
-        }
-    });
-
-    // ==========================================
-    // ฟังก์ชันบันทึกข้อมูลขึ้น Cloud
-    // ==========================================
-    function saveData() {
+    function saveToCloud() {
         if (!currentUserUid) return;
-        setSyncStatus("กำลังบันทึก...", "loading");
+        showSyncStatus("กำลังบันทึก...", "loading");
         
         db.collection("users").doc(currentUserUid).set({
             folders: folders,
             tags: tags,
             lastModified: Date.now()
         }, { merge: true }).then(() => {
-            setSyncStatus("☁️ บันทึกเสร็จสิ้น", "success");
-            renderCalendar();
+            showSyncStatus("☁️ บันทึกสำเร็จ", "success");
         }).catch(err => {
-            setSyncStatus("❌ บันทึกไม่สำเร็จ", "error");
             console.error(err);
+            showSyncStatus("❌ บันทึกไม่สำเร็จ", "error");
         });
     }
 
-    function setSyncStatus(text, statusClass) {
-        const el = document.getElementById("sync-status");
-        if(!el) return;
-        el.innerText = text;
-        el.className = `status-${statusClass}`;
+    function showSyncStatus(msg, type) {
+        const el = document.getElementById("syncStatus");
+        el.innerText = msg;
+        el.className = "status-" + type;
+        el.style.display = "block";
+        setTimeout(() => el.style.display = "none", 3000);
     }
 
     // ==========================================
-    // ระบบ UI หน้าจอ (แสดงผลโฟลเดอร์, เมนู)
+    // 🌟 ระบบ Navigation หน้าต่างๆ
     // ==========================================
-    function showPage(pageId) {
-        document.getElementById('page-home').style.display = 'none';
-        document.getElementById('page-calendar').style.display = 'none';
-        document.getElementById('page-manage').style.display = 'none';
-        document.getElementById(`page-${pageId}`).style.display = 'block';
-        toggleSidebar(true);
-        
-        if(pageId === 'home') {
-            document.getElementById('folderSelection').style.display = 'grid';
-            document.getElementById('cardDisplay').style.display = 'none';
-            document.getElementById('folderTitle').innerText = "เลือกโฟลเดอร์เพื่อเริ่มทบทวน";
-            document.getElementById('cardCounter').innerText = "";
-            currentFolderIdx = -1;
-            playing = false;
-            render();
-        } else if (pageId === 'calendar') {
-            renderCalendar();
-        } else if (pageId === 'manage') {
-            renderManageView();
-        }
-    }
-
-    function toggleSidebar(forceClose = false) {
-        const sidebar = document.getElementById("sidebar");
-        const overlay = document.getElementById("overlay");
-        if (forceClose || sidebar.style.left === "0px") {
-            sidebar.style.left = "-260px";
-            overlay.style.display = "none";
+    function toggleSidebar() {
+        const sb = document.getElementById("sidebar");
+        const ov = document.getElementById("overlay");
+        if (sb.style.left === "0px") {
+            sb.style.left = "-280px";
+            ov.style.display = "none";
         } else {
-            sidebar.style.left = "0px";
-            overlay.style.display = "block";
+            sb.style.left = "0px";
+            ov.style.display = "block";
         }
     }
 
-    function render() {
-        const sel = document.getElementById("folderSelection");
-        sel.innerHTML = "";
+    function showPage(pageId) {
+        const pages = ['homePage', 'playArea', 'listView', 'searchPage', 'tagManagerPage', 'calendarPage'];
+        pages.forEach(p => document.getElementById(p).style.display = "none");
+        
+        document.getElementById(pageId).style.display = "block";
+        if(pageId === 'homePage') {
+            playing = false;
+            renderFolders();
+        }
+        toggleSidebar(); // ปิด sidebar หลังจากคลิก
+    }
+
+    // ==========================================
+    // 🌟 ฟังก์ชันเฟส 2: จัดการโฟลเดอร์
+    // ==========================================
+    function renderFolders() {
+        const list = document.getElementById("foldersList");
+        list.innerHTML = "";
         folders.forEach((f, i) => {
-            let dueCount = 0;
-            const now = new Date().getTime();
-            f.cards.forEach(c => {
-                if(new Date(c.due).getTime() <= now) dueCount++;
-            });
+            const fDiv = document.createElement("div");
+            fDiv.className = `folder ${i === currentFolderIdx ? 'active' : ''}`;
+            fDiv.innerHTML = `📂 ${f.name} <span style="font-size:12px; background:rgba(255,255,255,0.3); padding:2px 6px; border-radius:10px; margin-left:5px;">${f.cards.length}</span>`;
+            fDiv.onclick = () => selectFolder(i);
             
-            sel.innerHTML += `
-                <div class="folder-card" onclick="viewCards(${i})">
-                    <h3 style="margin: 0 0 10px 0; color: #1e293b;">📂 ${f.name}</h3>
-                    <p style="margin: 0; font-size: 14px; color: #64748b;">การ์ดทั้งหมด: ${f.cards.length}</p>
-                    ${dueCount > 0 ? `<div style="margin-top: 10px; color: white; background: #ef4444; padding: 4px 8px; border-radius: 4px; font-size: 12px; display: inline-block; font-weight: bold;">ต้องทบทวน: ${dueCount}</div>` : `<div style="margin-top: 10px; color: #10b981; font-size: 12px; font-weight: bold;">✔️ ทบทวนครบแล้ว</div>`}
-                </div>
-            `;
+            const delBtn = document.createElement("span");
+            delBtn.innerHTML = " ×";
+            delBtn.style.color = (i === currentFolderIdx) ? "#ffcccc" : "#ef4444";
+            delBtn.style.marginLeft = "8px";
+            delBtn.onclick = (e) => {
+                e.stopPropagation();
+                if(confirm(`ลบโฟลเดอร์ ${f.name} แน่ใจหรือไม่?`)) {
+                    folders.splice(i, 1);
+                    if(currentFolderIdx === i) currentFolderIdx = -1;
+                    saveToCloud();
+                    renderFolders();
+                }
+            };
+            fDiv.appendChild(delBtn);
+            list.appendChild(fDiv);
         });
-        renderManageView();
+    }
+
+    function addFolder() {
+        const name = document.getElementById("folderName").value.trim();
+        if (name) {
+            folders.push({ name: name, cards: [] });
+            document.getElementById("folderName").value = "";
+            saveToCloud();
+            renderFolders();
+        }
+    }
+
+    function selectFolder(index) {
+        currentFolderIdx = index;
+        renderFolders();
+        document.getElementById("currentFolderTitle").innerText = `📂 จัดการ: ${folders[currentFolderIdx].name}`;
+        document.getElementById("createCardSection").style.display = "block";
+        document.getElementById("folderControlsSection").style.display = "block";
+        document.getElementById("bulkImportSection").style.display = "block";
     }
 
     // ==========================================
-    // ระบบการเล่นการ์ด (Spaced Repetition)
+    // 🌟 ฟังก์ชันเฟส 2: จัดการแท็ก
     // ==========================================
-    function viewCards(fIndex) {
-        currentFolderIdx = fIndex;
-        document.getElementById("folderSelection").style.display = "none";
-        document.getElementById("cardDisplay").style.display = "block";
-        document.getElementById("folderTitle").innerText = `กำลังทบทวน: ${folders[fIndex].name}`;
+    function createTag() {
+        const name = document.getElementById("tagName").value.trim();
+        const color = document.getElementById("tagColor").value;
+        const interval = parseInt(document.getElementById("tagInterval").value) || 0;
         
+        if (!name) return;
+        if (tags.find(t => t.name === name)) return alert("ชื่อแท็กซ้ำกัน");
+        
+        tags.push({ name, color, interval, promoteTo: "", demoteTo: "" });
+        document.getElementById("tagName").value = "";
+        saveToCloud();
+        renderTagsUI();
+    }
+
+    function renderTagsUI() {
+        // UI แท็กตอนสร้างการ์ด
+        document.getElementById("multiTagInput").innerHTML = tags.map(t => `
+            <label style="cursor:pointer; background:${t.color}; color:white; padding:4px 10px; border-radius:12px; font-size:12px; display:inline-flex; align-items:center; gap:5px;">
+                <input type="checkbox" class="card-tag-cb" value="${t.name}"> ${t.name}
+            </label>
+        `).join("") || "<span style='color:gray; font-size:13px;'>ยังไม่มีแท็กในระบบ</span>";
+
+        // UI รายการแท็กที่มี
+        document.getElementById("tagList").innerHTML = tags.map((t, i) => `
+            <span class="tag-badge" style="background:${t.color}; color:white;">
+                ${t.name} <button onclick="deleteTag(${i})" style="background:rgba(0,0,0,0.2); border:none; border-radius:50%; width:16px; height:16px; color:white; cursor:pointer; margin-left:5px; font-size:10px;">✕</button>
+            </span>
+        `).join("");
+    }
+
+    function deleteTag(idx) {
+        if(confirm(`ลบแท็ก ${tags[idx].name} หรือไม่? (แท็กในการ์ดจะถูกลบไปด้วย)`)) {
+            const tname = tags[idx].name;
+            tags.splice(idx, 1);
+            folders.forEach(f => {
+                f.cards.forEach(c => {
+                    if(c.tag) c.tag = c.tag.filter(tn => tn !== tname);
+                });
+            });
+            saveToCloud();
+            renderTagsUI();
+        }
+    }
+
+    function selectAllTags(id) { document.querySelectorAll(`#${id} .card-tag-cb`).forEach(cb => cb.checked = true); }
+    function deselectAllTags(id) { document.querySelectorAll(`#${id} .card-tag-cb`).forEach(cb => cb.checked = false); }
+
+    // ==========================================
+    // 🌟 ฟังก์ชันเฟส 2: สร้างการ์ด & Bulk Import
+    // ==========================================
+    function addCard() {
+        if (currentFolderIdx === -1) return alert("เลือกโฟลเดอร์ก่อน");
+        const front = document.getElementById("front").value.trim();
+        const back = document.getElementById("back").value.trim();
+        if (!front || !back) return alert("กรอกข้อมูลให้ครบ");
+
+        const selectedTags = Array.from(document.querySelectorAll('#multiTagInput .card-tag-cb:checked')).map(cb => cb.value);
+
+        folders[currentFolderIdx].cards.push({
+            front: front, back: back, tag: selectedTags,
+            due: Date.now(), interval: 0, repetition: 0
+        });
+
+        document.getElementById("front").value = "";
+        document.getElementById("back").value = "";
+        deselectAllTags('multiTagInput');
+        saveToCloud();
+        renderFolders(); // Update count
+    }
+
+    function importBulkCards() {
+        if (currentFolderIdx === -1) return alert("เลือกโฟลเดอร์ก่อน");
+        const text = document.getElementById("bulk").value.trim();
+        if (!text) return;
+
+        let termSep = document.getElementById("sepTerm").value;
+        if (termSep === "tab") termSep = "\t";
+        if (termSep === "custom") termSep = document.getElementById("customSepTerm").value;
+        
+        let cardSep = document.getElementById("sepCard").value;
+        if (cardSep === "newline") cardSep = "\n";
+        if (cardSep === "custom") cardSep = document.getElementById("customSepCard").value;
+
+        let count = 0;
+        text.split(cardSep).forEach(line => {
+            let parts = line.split(termSep);
+            if (parts.length >= 2) {
+                folders[currentFolderIdx].cards.push({
+                    front: parts[0].trim(), back: parts[1].trim(), tag: [],
+                    due: Date.now(), interval: 0, repetition: 0
+                });
+                count++;
+            }
+        });
+
+        alert(`นำเข้าสำเร็จ ${count} ใบ`);
+        document.getElementById("bulk").value = "";
+        saveToCloud();
+        renderFolders();
+    }
+
+    // ==========================================
+    // 🌟 ฟังก์ชันเฟส 2: ดูรายการการ์ด (List View)
+    // ==========================================
+    function renderListView() {
+        if(currentFolderIdx === -1) return;
+        document.getElementById("listTitle").innerText = `📋 โฟลเดอร์: ${folders[currentFolderIdx].name}`;
+
+        let html = folders[currentFolderIdx].cards.map((c, idx) => {
+            let tagHtml = (c.tag || []).map(tn => {
+                let tObj = tags.find(t => t.name === tn);
+                return `<span style="background:${tObj ? tObj.color : '#cbd5e1'}; color:white; padding:2px 8px; border-radius:10px; font-size:11px; margin-right:4px;">${tn}</span>`;
+            }).join("");
+            
+            return `
+            <div class="section-box" style="padding:15px; margin-bottom:10px;">
+                <div style="display:flex; justify-content:space-between;">
+                    <div>
+                        <strong style="color:#1e293b; font-size:16px;">${c.front}</strong><br>
+                        <span style="color:#64748b; font-size:14px;">${c.back}</span>
+                        <div style="margin-top:8px;">${tagHtml}</div>
+                    </div>
+                    <button onclick="deleteCard(${idx})" class="btn-danger" style="height:fit-content; padding:6px 10px; font-size:12px;">ลบ</button>
+                </div>
+            </div>`;
+        }).join("");
+
+        document.getElementById("listContent").innerHTML = html || "<p style='text-align:center; color:gray;'>ไม่มีการ์ดในโฟลเดอร์นี้</p>";
+    }
+
+    function deleteCard(idx) {
+        if(confirm("ต้องการลบการ์ดนี้ใช่หรือไม่?")) {
+            folders[currentFolderIdx].cards.splice(idx, 1);
+            saveToCloud();
+            renderListView();
+            renderFolders();
+        }
+    }
+
+    // ==========================================
+    // 🌟 ฟังก์ชันเฟส 2: ระบบทบทวน (Spaced Repetition & Play)
+    // ==========================================
+    function toggleShuffle() {
+        isShuffle = !isShuffle;
+        document.getElementById("shuffleBtn").innerText = isShuffle ? "🔀 สุ่มการ์ด: เปิด" : "🔀 สุ่มการ์ด: ปิด";
+        document.getElementById("shuffleBtn").style.background = isShuffle ? "#2563eb" : "#e2e8f0";
+        document.getElementById("shuffleBtn").style.color = isShuffle ? "white" : "#333";
+    }
+
+    function startPlayMode() {
+        if (currentFolderIdx === -1 || folders[currentFolderIdx].cards.length === 0) return alert("ไม่มีการ์ดให้ทบทวน");
+        
+        showPage('playArea');
         playing = true;
-        const now = new Date().getTime();
-        pendingCards = folders[fIndex].cards.filter(c => new Date(c.due).getTime() <= now);
-        
-        showNextCard();
-    }
 
-    function showNextCard() {
-        if (pendingCards.length === 0) {
-            document.getElementById("cardContent").innerText = "🎉 ยินดีด้วย!";
-            document.getElementById("cardHint").innerText = "คุณทบทวนโฟลเดอร์นี้ครบแล้วในวันนี้";
+        const now = Date.now();
+        // ดึงเฉพาะใบที่ครบกำหนด (due)
+        sessionCards = folders[currentFolderIdx].cards
+            .map((c, i) => ({...c, originalIndex: i}))
+            .filter(c => c.due <= now);
+        
+        if (sessionCards.length === 0) {
+            document.getElementById("cardFront").innerText = "🎉 ยอดเยี่ยมมาก!";
+            document.getElementById("cardBack").innerText = "คุณทบทวนโฟลเดอร์นี้ครบแล้วสำหรับวันนี้";
+            document.getElementById("cardBack").style.display = "block";
+            document.getElementById("flipHint").style.display = "none";
             document.getElementById("actionButtons").style.display = "none";
-            document.getElementById("cardCounter").innerText = "";
+            document.getElementById("playProgress").innerText = "";
+            document.getElementById("currentCardTags").innerHTML = "";
             return;
         }
 
-        const card = pendingCards[0];
-        document.getElementById("cardContent").innerText = card.front;
-        document.getElementById("cardHint").innerText = "คลิกเพื่อดูคำตอบ";
+        if (isShuffle) sessionCards.sort(() => Math.random() - 0.5);
+        currentCardIdx = 0;
+        showPlayCard();
+    }
+
+    function showPlayCard() {
+        if (currentCardIdx >= sessionCards.length) {
+            alert("จบการทบทวนรอบนี้แล้ว!");
+            showPage('homePage');
+            return;
+        }
+
+        let card = sessionCards[currentCardIdx];
+        document.getElementById("cardFront").innerText = card.front;
+        document.getElementById("cardBack").innerText = card.back;
+        document.getElementById("cardBack").style.display = "none";
+        document.getElementById("flipHint").style.display = "block";
         document.getElementById("actionButtons").style.display = "none";
-        document.getElementById("cardCounter").innerText = `เหลืออีก ${pendingCards.length} ใบ`;
+        document.getElementById("playProgress").innerText = `เหลืออีก ${sessionCards.length - currentCardIdx} ใบ`;
+        
+        document.getElementById("currentCardTags").innerHTML = (card.tag || []).map(tn => {
+            let tObj = tags.find(t => t.name === tn);
+            return `<span style="background:${tObj ? tObj.color : '#cbd5e1'}; color:white; padding:4px 10px; border-radius:12px; font-size:12px; margin:0 3px;">${tn}</span>`;
+        }).join("");
+
         isFlipped = false;
     }
 
     function flipCard() {
-        if (pendingCards.length === 0 || isFlipped) return;
+        if (isFlipped || sessionCards.length === 0 || currentCardIdx >= sessionCards.length) return;
         isFlipped = true;
-        document.getElementById("cardContent").innerText = pendingCards[0].back;
-        document.getElementById("cardHint").innerText = "เลือกความแม่นยำของคุณ";
+        document.getElementById("cardBack").style.display = "block";
+        document.getElementById("flipHint").style.display = "none";
         document.getElementById("actionButtons").style.display = "flex";
     }
 
-    function answer(score) {
-        let card = pendingCards.shift();
-        
-        // อัลกอริทึมคำนวณวันถัดไปอย่างง่าย (คล้าย SuperMemo)
+    function answerCard(score) {
+        let sc = sessionCards[currentCardIdx];
+        let realCard = folders[currentFolderIdx].cards[sc.originalIndex];
+
         if (score === 1) {
-            card.interval = 0;
-            card.repetition = 0;
-            card.due = new Date().getTime(); // ต้องทบทวนใหม่วันนี้เลย
-            pendingCards.push(card); // เอาไปต่อท้ายคิว
+            realCard.interval = 0;
+            realCard.repetition = 0;
+            realCard.due = Date.now(); 
+            sessionCards.push(sc); // ทำผิด เอาไปต่อคิวหลังสุด
         } else {
-            if (card.repetition === 0) {
-                card.interval = 1;
-            } else if (card.repetition === 1) {
-                card.interval = 3;
-            } else {
-                card.interval = Math.round(card.interval * (score === 5 ? 2.5 : 1.5));
+            if (realCard.repetition === 0) realCard.interval = 1;
+            else if (realCard.repetition === 1) realCard.interval = 3;
+            else realCard.interval = Math.round((realCard.interval || 3) * (score === 5 ? 2.5 : 1.5));
+            
+            realCard.repetition++;
+            realCard.due = Date.now() + (realCard.interval * 86400000); // แปลงวันเป็นมิลลิวินาที
+        }
+
+        applyTagRules(realCard, score > 1);
+        saveToCloud();
+        
+        currentCardIdx++;
+        showPlayCard();
+    }
+
+    function applyTagRules(card, isSuccess) {
+        if (!card.tag || card.tag.length === 0) return;
+        let newTags = [...card.tag];
+        
+        card.tag.forEach(tn => {
+            let tObj = tags.find(t => t.name === tn);
+            if (tObj) {
+                if (isSuccess && tObj.promoteTo) {
+                    newTags = newTags.filter(t => t !== tn);
+                    if (!newTags.includes(tObj.promoteTo)) newTags.push(tObj.promoteTo);
+                } else if (!isSuccess && tObj.demoteTo) {
+                    newTags = newTags.filter(t => t !== tn);
+                    if (!newTags.includes(tObj.demoteTo)) newTags.push(tObj.demoteTo);
+                }
             }
-            card.repetition++;
-            card.due = new Date().getTime() + (card.interval * 24 * 60 * 60 * 1000);
-        }
-
-        saveData(); // บันทึกการเปลี่ยนแปลงขึ้น Cloud
-        showNextCard();
-    }
-
-    // ==========================================
-    // ระบบจัดการโฟลเดอร์และการ์ด
-    // ==========================================
-    function addFolder() {
-        const name = document.getElementById("newFolderName").value;
-        if (name) {
-            folders.push({ name: name, cards: [] });
-            document.getElementById("newFolderName").value = "";
-            saveData();
-        }
-    }
-
-    function deleteFolder(index) {
-        if (confirm("คุณแน่ใจหรือไม่ที่จะลบโฟลเดอร์นี้และคำศัพท์ทั้งหมดข้างใน?")) {
-            folders.splice(index, 1);
-            saveData();
-        }
-    }
-
-    function addCard(fIndex) {
-        const front = prompt("คำถาม (ด้านหน้า):");
-        if (!front) return;
-        const back = prompt("คำตอบ (ด้านหลัง):");
-        if (!back) return;
-
-        folders[fIndex].cards.push({
-            front: front,
-            back: back,
-            due: new Date().getTime(),
-            interval: 0,
-            repetition: 0
         });
-        saveData();
+        card.tag = newTags;
     }
 
-    function renderManageView() {
-        const list = document.getElementById("folderManageList");
-        if(!list) return;
-        list.innerHTML = "";
-        folders.forEach((f, i) => {
-            let cardsHtml = "";
+    // ==========================================
+    // 🌟 ฟังก์ชันเฟส 2: ค้นหาขั้นสูง & Bulk Action
+    // ==========================================
+    function initSearchPage() {
+        let filter = document.getElementById("advFolderFilter");
+        filter.innerHTML = `<option value="all">-- ค้นหาทุกโฟลเดอร์ --</option>` + folders.map(f => `<option value="${f.name}">${f.name}</option>`).join("");
+        renderSearchTagFilters();
+        executeAdvancedSearch();
+    }
+
+    function renderSearchTagFilters() {
+        let html = tags.map(t => {
+            let isSel = selectedSearchTags.includes(t.name);
+            return `<div onclick="toggleSearchTag('${t.name}')" style="cursor:pointer; padding:6px 14px; border-radius:20px; border:2px solid ${t.color}; background:${isSel ? t.color : 'white'}; color:${isSel ? 'white' : t.color}; font-size:13px; font-weight:bold; transition:0.2s;">${isSel?'✓ ':''}${t.name}</div>`;
+        }).join("");
+        document.getElementById("searchTagFilters").innerHTML = html || "<small style='color:gray;'>ไม่มีแท็กในระบบ</small>";
+    }
+
+    function toggleSearchTag(tagName) {
+        if (selectedSearchTags.includes(tagName)) selectedSearchTags = selectedSearchTags.filter(t => t !== tagName);
+        else selectedSearchTags.push(tagName);
+        renderSearchTagFilters();
+        executeAdvancedSearch();
+    }
+
+    function executeAdvancedSearch() {
+        let query = document.getElementById("advSearchInput").value.toLowerCase().trim();
+        let selFolder = document.getElementById("advFolderFilter").value;
+        let resultsHTML = "";
+        let count = 0;
+
+        folders.forEach((f, fIdx) => {
+            if (selFolder !== "all" && f.name !== selFolder) return;
+            
             f.cards.forEach((c, cIdx) => {
-                cardsHtml += `
-                    <div style="display:flex; justify-content:space-between; background:#f8fafc; padding:8px; margin-top:5px; border-radius:6px; font-size:14px;">
-                        <span>Q: ${c.front} | A: ${c.back}</span>
-                        <button onclick="deleteCard(${i}, ${cIdx})" style="color:red; background:none; border:none; cursor:pointer;">ลบ</button>
-                    </div>
-                `;
-            });
-
-            list.innerHTML += `
-                <div style="background:white; padding:15px; border-radius:10px; margin-bottom:15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                        <h4 style="margin:0; color:#1e293b;">📂 ${f.name}</h4>
+                let matchText = c.front.toLowerCase().includes(query) || c.back.toLowerCase().includes(query);
+                let matchTag = selectedSearchTags.length === 0 || selectedSearchTags.some(t => (c.tag || []).includes(t));
+                
+                if (matchText && matchTag) {
+                    count++;
+                    let tagHtml = (c.tag || []).map(tn => `<span style="background:#cbd5e1; color:white; padding:2px 8px; border-radius:10px; font-size:11px;">${tn}</span>`).join(" ");
+                    
+                    resultsHTML += `
+                    <div style="background:white; border-radius:12px; padding:15px; margin-bottom:10px; border:1px solid #e2e8f0; display:flex; align-items:center;">
+                        <input type="checkbox" class="search-cb" value="${fIdx}-${cIdx}" onchange="updateSearchBulkUI()" style="margin-right:15px; transform:scale(1.3);">
                         <div>
-                            <button class="btn btn-success" style="padding: 5px 10px; font-size:12px;" onclick="addCard(${i})">+ เพิ่มการ์ด</button>
-                            <button class="btn btn-danger" style="padding: 5px 10px; font-size:12px;" onclick="deleteFolder(${i})">ลบโฟลเดอร์</button>
+                            <div style="font-size:11px; color:#94a3b8; margin-bottom:4px;">📂 ${f.name}</div>
+                            <strong style="font-size:16px; color:#1e293b;">${c.front}</strong>
+                            <div style="color:#64748b; font-size:14px; margin-top:4px;">${c.back}</div>
+                            <div style="margin-top:6px;">${tagHtml}</div>
                         </div>
-                    </div>
-                    ${cardsHtml}
-                </div>
-            `;
+                    </div>`;
+                }
+            });
         });
+
+        document.getElementById("advSearchResult").innerHTML = resultsHTML || "<div style='text-align:center; padding:30px; color:gray;'>ไม่พบผลลัพธ์</div>";
+        document.getElementById("searchResultsCount").innerText = `พบ ${count} รายการ`;
+        updateSearchBulkUI();
     }
 
-    function deleteCard(fIndex, cIndex) {
-        if(confirm("ลบการ์ดใบนี้?")) {
-            folders[fIndex].cards.splice(cIndex, 1);
-            saveData();
-        }
+    function selectAllSearchCards(check) {
+        document.querySelectorAll(".search-cb").forEach(cb => cb.checked = check);
+        updateSearchBulkUI();
+    }
+
+    function updateSearchBulkUI() {
+        let checked = document.querySelectorAll(".search-cb:checked").length;
+        document.getElementById("searchBulkActionOuter").style.display = checked > 0 ? "block" : "none";
+        document.getElementById("searchSelectedCount").innerText = `เลือกแล้ว ${checked} ใบ`;
+    }
+
+    function deleteSelectedFromSearch() {
+        if(!confirm("ต้องการลบการ์ดที่เลือกทิ้งทั้งหมด?")) return;
+        
+        let targets = Array.from(document.querySelectorAll(".search-cb:checked")).map(cb => {
+            let pts = cb.value.split("-");
+            return { f: parseInt(pts[0]), c: parseInt(pts[1]) };
+        }).sort((a,b) => b.c - a.c); // sort ถอยหลังเพื่อไม่ให้ index เคลื่อนตอนลบ
+
+        targets.forEach(t => {
+            folders[t.f].cards.splice(t.c, 1);
+        });
+
+        saveToCloud();
+        executeAdvancedSearch();
     }
 
     // ==========================================
-    // ระบบปฏิทิน
+    // 🌟 ฟังก์ชันเฟส 2: Tag Manager (ตั้งค่า Promote/Demote)
+    // ==========================================
+    function renderTagManagerList() {
+        let html = tags.map((t, idx) => {
+            let opt = `<option value="">-- ไม่เปลี่ยน --</option>` + tags.filter(other => other.name !== t.name).map(other => `<option value="${other.name}">${other.name}</option>`).join("");
+            
+            return `
+            <div class="section-box" style="padding:20px; border-left: 5px solid ${t.color}; margin-bottom:15px;">
+                <h3 style="margin-top:0; color:${t.color};">${t.name}</h3>
+                <div style="display:flex; flex-wrap:wrap; gap:15px; font-size:14px;">
+                    <div>
+                        <strong style="color:#10b981;">🟢 เมื่อตอบถูก เปลี่ยนแท็กเป็น:</strong><br>
+                        <select onchange="updateTagRule(${idx}, 'promoteTo', this.value)" style="margin-top:5px;">
+                            ${opt.replace(`value="${t.promoteTo}"`, `value="${t.promoteTo}" selected`)}
+                        </select>
+                    </div>
+                    <div>
+                        <strong style="color:#ef4444;">🔴 เมื่อตอบผิด เปลี่ยนแท็กเป็น:</strong><br>
+                        <select onchange="updateTagRule(${idx}, 'demoteTo', this.value)" style="margin-top:5px;">
+                            ${opt.replace(`value="${t.demoteTo}"`, `value="${t.demoteTo}" selected`)}
+                        </select>
+                    </div>
+                </div>
+            </div>`;
+        }).join("");
+        
+        document.getElementById("tagEditorList").innerHTML = html || "<p style='color:gray;'>ยังไม่มีแท็กในระบบ</p>";
+    }
+
+    function updateTagRule(idx, field, val) {
+        tags[idx][field] = val;
+        saveToCloud();
+    }
+
+    // ==========================================
+    // 🌟 ฟังก์ชันเฟส 2: ระบบปฏิทินทบทวน (Calendar)
     // ==========================================
     function renderCalendar() {
         const grid = document.getElementById("calendarGrid");
@@ -508,36 +864,37 @@
         const y = calDate.getFullYear();
         const m = calDate.getMonth();
         const monthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-        document.getElementById("calMonthTitle").innerText = `${monthNames[m]} ${y}`;
+        document.getElementById("monthTitle").innerText = `${monthNames[m]} ${y}`;
 
         const firstDay = new Date(y, m, 1).getDay();
         const daysInMonth = new Date(y, m + 1, 0).getDate();
         const todayStr = new Date().toDateString();
 
+        // เติมช่องว่างสัปดาห์แรก
+        grid.innerHTML += `<div class="dayHeader">อา</div><div class="dayHeader">จ</div><div class="dayHeader">อ</div><div class="dayHeader">พ</div><div class="dayHeader">พฤ</div><div class="dayHeader">ศ</div><div class="dayHeader">ส</div>`;
         for (let i = 0; i < firstDay; i++) {
-            grid.innerHTML += `<div></div>`;
+            grid.innerHTML += `<div style="background:transparent;"></div>`;
         }
 
+        // วาดวันที่
         for (let d = 1; d <= daysInMonth; d++) {
-            const currentObjDate = new Date(y, m, d);
-            const dateStr = currentObjDate.toDateString();
+            const dateStr = new Date(y, m, d).toDateString();
+            let dueCount = 0;
             
-            let hasDue = false;
-            // เช็คว่ามีคำศัพท์ที่ต้องทบทวนในวันนี้หรือไม่
-            folders.forEach(folder => {
-                folder.cards.forEach(card => {
-                    if (new Date(card.due).toDateString() === dateStr) {
-                        hasDue = true;
-                    }
+            folders.forEach(f => {
+                f.cards.forEach(c => {
+                    if (new Date(c.due).toDateString() === dateStr) dueCount++;
                 });
             });
 
-            const isToday = dateStr === todayStr ? "cal-today" : "";
-            const dot = hasDue ? `<div class="due-dot"></div>` : "";
+            const isToday = dateStr === todayStr;
+            const style = isToday ? "border: 2px solid #2563eb; font-weight:bold; background:#eff6ff;" : "";
+            const dot = dueCount > 0 ? `<div class="due-dot"></div>` : "";
 
             grid.innerHTML += `
-                <div class="cal-day ${isToday}" onclick="showDayDetails(${y}, ${m}, ${d})">
+                <div class="dayCell" style="${style}" onclick="showDayDetails(${y}, ${m}, ${d})">
                     ${d}
+                    <div style="font-size:11px; color:#64748b; text-align:center; margin-top:5px;">${dueCount>0 ? dueCount+' ใบ' : ''}</div>
                     ${dot}
                 </div>`;
         }
@@ -545,36 +902,28 @@
 
     function showDayDetails(y, m, d) {
         const targetDate = new Date(y, m, d).toDateString();
-        document.getElementById("modalDateTitle").innerText = `📅 รายการวันที่ ${d}/${m+1}/${y}`;
-        let listHtml = ""; let found = false;
+        document.getElementById("modalDateTitle").innerText = `📅 ทบทวนวันที่ ${d}/${m+1}/${y}`;
+        let listHtml = ""; 
         
-        folders.forEach(folder => {
-            folder.cards.forEach(card => {
-                if (new Date(card.due).toDateString() === targetDate) {
-                    found = true;
+        folders.forEach(f => {
+            f.cards.forEach(c => {
+                if (new Date(c.due).toDateString() === targetDate) {
                     listHtml += `
-                        <div style="padding:12px; border-bottom:1px solid #eee; text-align:left;">
-                            <strong style="color:#1e293b;">${card.front}</strong>
-                            <div style="font-size:13px; color:#64748b;">📂 ${folder.name}</div>
+                        <div style="padding:12px; border-bottom:1px solid #f1f5f9;">
+                            <strong style="color:#1e293b;">${c.front}</strong>
+                            <div style="font-size:12px; color:#64748b; margin-top:4px;">📂 ${f.name}</div>
                         </div>`;
                 }
             });
         });
         
-        document.getElementById("modalCardList").innerHTML = found ? listHtml : "<p style='text-align:center; color:gray; padding:20px;'>ไม่มีรายการทบทวนในวันนี้ 🎉</p>";
+        document.getElementById("modalCardList").innerHTML = listHtml || "<p style='text-align:center; color:gray; padding:20px;'>ไม่มีรายการที่ต้องทบทวน 🎉</p>";
         document.getElementById("calendarModal").style.display = "flex";
     }
 
     function closeModal() { document.getElementById("calendarModal").style.display = "none"; }
     function nextMonth(){ calDate.setMonth(calDate.getMonth()+1); renderCalendar(); }
     function prevMonth(){ calDate.setMonth(calDate.getMonth()-1); renderCalendar(); }
-
-    // ==========================================
-    // เคลียร์ window.onload ที่เคยสร้างปัญหาคอขวดทิ้ง
-    // ==========================================
-    window.onload = () => {
-        // ปล่อยว่างไว้ เพราะ auth.onAuthStateChanged เป็นคนจัดการคิวโหลดข้อมูลแล้ว
-    };
 
 </script>
 </body>
