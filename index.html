@@ -10,7 +10,7 @@
     
     <style>
         /* ==========================================
-           สไตล์ UI จาก Add0.1 (สวยงาม คลีน โหลดเร็ว)
+           สไตล์ UI สุดคลีนและโหลดเร็ว (Base 4.6)
            ========================================== */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f8; padding: 20px; color: #333; line-height: 1.6; margin: 0; }
         #app-container { max-width: 950px; margin: 0 auto; position: relative; padding-bottom: 50px; }
@@ -94,7 +94,7 @@
         <div id="sidebar">
             <h3 style="padding-left:20px; color:#2563eb; margin-bottom: 20px;">📚 เมนูหลัก</h3>
             <div class="menuItem" onclick="showPage('homePage')">🏠 หน้าแรก (จัดการการ์ด)</div>
-            <div class="menuItem" onclick="showPage('searchPage'); initSearchPage();">🔍 ค้นหาขั้นสูง & ส่งออก</div>
+            <div class="menuItem" onclick="showPage('searchPage'); initSearchPage();">🔍 ค้นหาขั้นสูง & เริ่มเรียนด่วน</div>
             <div class="menuItem" onclick="showPage('calendarPage'); renderCalendar();">📅 ปฏิทินทบทวน</div>
             <div class="menuItem" onclick="showPage('tagManagerPage'); renderTagManagerList();">🏷️ จัดการกฎของแท็ก</div>
         </div>
@@ -141,6 +141,7 @@
                 <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 15px;">
                     <input id="tagName" placeholder="ชื่อแท็กใหม่" style="flex: 1; min-width: 120px;">
                     <input id="tagInterval" type="number" placeholder="วันทบทวน" style="width: 90px;" title="จำนวนวันที่จะให้ทบทวน">
+                    <button onclick="document.getElementById('tagInterval').value = 0" class="btn-secondary" style="padding: 10px 15px; font-size: 13px;">📅 ทบทวนวันนี้ (0)</button>
                     <input type="color" id="tagColor" value="#3b82f6" style="width: 45px; height: 42px; padding: 2px; cursor: pointer; border-radius: 8px;">
                     <button onclick="createTag()" class="btn-primary">สร้างแท็ก</button>
                 </div>
@@ -166,7 +167,7 @@
 
         <div id="playArea" style="display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <button onclick="showPage('homePage')" class="btn-secondary">⬅️ กลับ</button>
+                <button onclick="showPage('homePage')" class="btn-secondary">⬅️ หยุดเรียน</button>
                 <div id="playProgress" style="font-weight: bold; color: #64748b;"></div>
             </div>
             
@@ -195,7 +196,7 @@
 
         <div id="searchPage" style="display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 style="margin: 0;">🔍 ค้นหาและจัดการขั้นสูง</h2>
+                <h2 style="margin: 0;">🔍 ค้นหาและเรียนข้ามโฟลเดอร์</h2>
                 <button onclick="showPage('homePage')" class="btn-secondary">❌ ปิด</button>
             </div>
             
@@ -221,7 +222,10 @@
             <div id="searchBulkActionOuter" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); width:90%; max-width:700px; background:#1e293b; color:white; padding:15px; border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,0.3); z-index:2000;">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                     <span id="searchSelectedCount" style="font-weight: bold;">เลือกแล้ว 0 ใบ</span>
-                    <button onclick="deleteSelectedFromSearch()" class="btn-danger" style="padding:8px 12px;">🗑️ ลบที่เลือก</button>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="startPlaySearch()" class="btn-success" style="padding:8px 12px;">▶️ เริ่มเรียนที่เลือก</button>
+                        <button onclick="deleteSelectedFromSearch()" class="btn-danger" style="padding:8px 12px;">🗑️ ลบที่เลือก</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -258,7 +262,7 @@
 
 <script>
     // ==========================================
-    // 🌟 ระบบเชื่อมต่อ FIREBASE & OFFLINE PERSISTENCE (จาก Add0.1)
+    // 🌟 ระบบเชื่อมต่อ FIREBASE & OFFLINE PERSISTENCE (จาก 4.6)
     // ==========================================
     const firebaseConfig = {
         apiKey: "AIzaSyCmbTUstDsHGQbL_x3Xf3yAjGFgQY5PGwM",
@@ -274,14 +278,11 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // เปิดความจำฝังเครื่อง โหลดเร็วติดจรวด 0.1 วินาที
-    db.enablePersistence().catch((err) => {
-        console.warn("⚠️ Offline Mode Error:", err.message);
-    });
+    db.enablePersistence().catch((err) => { console.warn("⚠️ Offline Mode Error:", err.message); });
     auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
 
     // ==========================================
-    // 🌟 ตัวแปร Global ของระบบ (รวมเฟส 2 และ Add0.1)
+    // 🌟 ตัวแปร Global ของระบบ (รองรับ Cross-folder)
     // ==========================================
     let folders = [];
     let tags = [];
@@ -291,7 +292,7 @@
     // สถานะการเล่น (Play Mode)
     let playing = false;
     let isShuffle = false;
-    let sessionCards = [];
+    let sessionCards = []; // เก็บทั้ง {folderIdx, cardIdx} เผื่อเล่นข้ามโฟลเดอร์
     let currentCardIdx = 0;
     let isFlipped = false;
 
@@ -300,7 +301,7 @@
     let selectedSearchTags = [];
 
     // ==========================================
-    // 🌟 Auth Guard: จัดคิวการโหลด (แก้คอขวด)
+    // 🌟 Auth Guard: จัดคิวการโหลด
     // ==========================================
     auth.onAuthStateChanged((user) => {
         const loading = document.getElementById("loadingScreen");
@@ -316,8 +317,6 @@
             loading.style.display = "none";
             prompt.style.display = "none";
             app.style.display = "block";
-
-            // สั่งโหลดข้อมูล "หลัง" ล็อกอินสำเร็จเท่านั้น
             loadData(user.uid);
         } else {
             currentUserUid = null;
@@ -336,12 +335,10 @@
         });
     }
 
-    function logout() {
-        auth.signOut().then(() => location.reload());
-    }
+    function logout() { auth.signOut().then(() => location.reload()); }
 
     // ==========================================
-    // 🌟 โหลด & บันทึกข้อมูล (แบบกล้องวงจรปิด onSnapshot)
+    // 🌟 โหลด & บันทึกข้อมูล (onSnapshot)
     // ==========================================
     function loadData(uid) {
         showSyncStatus("กำลังซิงค์ข้อมูล...", "loading");
@@ -352,13 +349,8 @@
                 folders = data.folders || [];
                 tags = data.tags || [];
                 
-                // อัปเดตหน้าจอทันทีเมื่อมีข้อมูลใหม่
                 renderFolders();
                 renderTagsUI();
-                
-                if (currentFolderIdx !== -1 && !playing) {
-                    // Refresh UI ของโฟลเดอร์ปัจจุบันถ้าเปิดค้างไว้
-                }
 
                 if (doc.metadata.fromCache) {
                     showSyncStatus("⚡ โหลดจากเครื่อง (Offline)", "success");
@@ -378,11 +370,8 @@
     function saveToCloud() {
         if (!currentUserUid) return;
         showSyncStatus("กำลังบันทึก...", "loading");
-        
         db.collection("users").doc(currentUserUid).set({
-            folders: folders,
-            tags: tags,
-            lastModified: Date.now()
+            folders: folders, tags: tags, lastModified: Date.now()
         }, { merge: true }).then(() => {
             showSyncStatus("☁️ บันทึกสำเร็จ", "success");
         }).catch(err => {
@@ -417,17 +406,13 @@
     function showPage(pageId) {
         const pages = ['homePage', 'playArea', 'listView', 'searchPage', 'tagManagerPage', 'calendarPage'];
         pages.forEach(p => document.getElementById(p).style.display = "none");
-        
         document.getElementById(pageId).style.display = "block";
-        if(pageId === 'homePage') {
-            playing = false;
-            renderFolders();
-        }
-        toggleSidebar(); // ปิด sidebar หลังจากคลิก
+        if(pageId === 'homePage') { playing = false; renderFolders(); }
+        toggleSidebar(); 
     }
 
     // ==========================================
-    // 🌟 ฟังก์ชันเฟส 2: จัดการโฟลเดอร์
+    // 🌟 จัดการโฟลเดอร์ & แท็ก
     // ==========================================
     function renderFolders() {
         const list = document.getElementById("foldersList");
@@ -447,8 +432,7 @@
                 if(confirm(`ลบโฟลเดอร์ ${f.name} แน่ใจหรือไม่?`)) {
                     folders.splice(i, 1);
                     if(currentFolderIdx === i) currentFolderIdx = -1;
-                    saveToCloud();
-                    renderFolders();
+                    saveToCloud(); renderFolders();
                 }
             };
             fDiv.appendChild(delBtn);
@@ -461,8 +445,7 @@
         if (name) {
             folders.push({ name: name, cards: [] });
             document.getElementById("folderName").value = "";
-            saveToCloud();
-            renderFolders();
+            saveToCloud(); renderFolders();
         }
     }
 
@@ -475,9 +458,6 @@
         document.getElementById("bulkImportSection").style.display = "block";
     }
 
-    // ==========================================
-    // 🌟 ฟังก์ชันเฟส 2: จัดการแท็ก
-    // ==========================================
     function createTag() {
         const name = document.getElementById("tagName").value.trim();
         const color = document.getElementById("tagColor").value;
@@ -488,19 +468,16 @@
         
         tags.push({ name, color, interval, promoteTo: "", demoteTo: "" });
         document.getElementById("tagName").value = "";
-        saveToCloud();
-        renderTagsUI();
+        saveToCloud(); renderTagsUI();
     }
 
     function renderTagsUI() {
-        // UI แท็กตอนสร้างการ์ด
         document.getElementById("multiTagInput").innerHTML = tags.map(t => `
             <label style="cursor:pointer; background:${t.color}; color:white; padding:4px 10px; border-radius:12px; font-size:12px; display:inline-flex; align-items:center; gap:5px;">
                 <input type="checkbox" class="card-tag-cb" value="${t.name}"> ${t.name}
             </label>
         `).join("") || "<span style='color:gray; font-size:13px;'>ยังไม่มีแท็กในระบบ</span>";
 
-        // UI รายการแท็กที่มี
         document.getElementById("tagList").innerHTML = tags.map((t, i) => `
             <span class="tag-badge" style="background:${t.color}; color:white;">
                 ${t.name} <button onclick="deleteTag(${i})" style="background:rgba(0,0,0,0.2); border:none; border-radius:50%; width:16px; height:16px; color:white; cursor:pointer; margin-left:5px; font-size:10px;">✕</button>
@@ -513,12 +490,9 @@
             const tname = tags[idx].name;
             tags.splice(idx, 1);
             folders.forEach(f => {
-                f.cards.forEach(c => {
-                    if(c.tag) c.tag = c.tag.filter(tn => tn !== tname);
-                });
+                f.cards.forEach(c => { if(c.tag) c.tag = c.tag.filter(tn => tn !== tname); });
             });
-            saveToCloud();
-            renderTagsUI();
+            saveToCloud(); renderTagsUI();
         }
     }
 
@@ -526,7 +500,7 @@
     function deselectAllTags(id) { document.querySelectorAll(`#${id} .card-tag-cb`).forEach(cb => cb.checked = false); }
 
     // ==========================================
-    // 🌟 ฟังก์ชันเฟส 2: สร้างการ์ด & Bulk Import
+    // 🌟 สร้างการ์ด & Bulk Import
     // ==========================================
     function addCard() {
         if (currentFolderIdx === -1) return alert("เลือกโฟลเดอร์ก่อน");
@@ -544,8 +518,7 @@
         document.getElementById("front").value = "";
         document.getElementById("back").value = "";
         deselectAllTags('multiTagInput');
-        saveToCloud();
-        renderFolders(); // Update count
+        saveToCloud(); renderFolders();
     }
 
     function importBulkCards() {
@@ -553,13 +526,8 @@
         const text = document.getElementById("bulk").value.trim();
         if (!text) return;
 
-        let termSep = document.getElementById("sepTerm").value;
-        if (termSep === "tab") termSep = "\t";
-        if (termSep === "custom") termSep = document.getElementById("customSepTerm").value;
-        
-        let cardSep = document.getElementById("sepCard").value;
-        if (cardSep === "newline") cardSep = "\n";
-        if (cardSep === "custom") cardSep = document.getElementById("customSepCard").value;
+        let termSep = document.getElementById("sepTerm").value === "tab" ? "\t" : (document.getElementById("sepTerm").value === "custom" ? document.getElementById("customSepTerm").value : document.getElementById("sepTerm").value);
+        let cardSep = document.getElementById("sepCard").value === "newline" ? "\n" : (document.getElementById("sepCard").value === "custom" ? document.getElementById("customSepCard").value : document.getElementById("sepCard").value);
 
         let count = 0;
         text.split(cardSep).forEach(line => {
@@ -572,15 +540,13 @@
                 count++;
             }
         });
-
         alert(`นำเข้าสำเร็จ ${count} ใบ`);
         document.getElementById("bulk").value = "";
-        saveToCloud();
-        renderFolders();
+        saveToCloud(); renderFolders();
     }
 
     // ==========================================
-    // 🌟 ฟังก์ชันเฟส 2: ดูรายการการ์ด (List View)
+    // 🌟 ดูรายการการ์ด (List View)
     // ==========================================
     function renderListView() {
         if(currentFolderIdx === -1) return;
@@ -611,14 +577,12 @@
     function deleteCard(idx) {
         if(confirm("ต้องการลบการ์ดนี้ใช่หรือไม่?")) {
             folders[currentFolderIdx].cards.splice(idx, 1);
-            saveToCloud();
-            renderListView();
-            renderFolders();
+            saveToCloud(); renderListView(); renderFolders();
         }
     }
 
     // ==========================================
-    // 🌟 ฟังก์ชันเฟส 2: ระบบทบทวน (Spaced Repetition & Play)
+    // 🌟 ระบบทบทวน (Spaced Repetition: ข้ามโฟลเดอร์ได้)
     // ==========================================
     function toggleShuffle() {
         isShuffle = !isShuffle;
@@ -627,21 +591,42 @@
         document.getElementById("shuffleBtn").style.color = isShuffle ? "white" : "#333";
     }
 
+    // ฟังก์ชันจาก 4.6 (เริ่มจากโฟลเดอร์ที่เลือก)
     function startPlayMode() {
         if (currentFolderIdx === -1 || folders[currentFolderIdx].cards.length === 0) return alert("ไม่มีการ์ดให้ทบทวน");
+        const now = Date.now();
+        // อัปเกรด: บันทึก folderIdx และ cardIdx เพื่อความชัวร์เวลาซิงค์
+        sessionCards = folders[currentFolderIdx].cards
+            .map((c, i) => ({...c, folderIdx: currentFolderIdx, cardIdx: i}))
+            .filter(c => c.due <= now);
         
+        initPlaySession();
+    }
+
+    // ฟังก์ชันจาก 4.0 (เริ่มจากที่เลือกค้นหา ข้ามโฟลเดอร์ได้อิสระ)
+    function startPlaySearch() {
+        let targets = Array.from(document.querySelectorAll(".search-cb:checked")).map(cb => {
+            let pts = cb.value.split("-");
+            return { f: parseInt(pts[0]), c: parseInt(pts[1]) };
+        });
+        
+        if (targets.length === 0) return alert("กรุณาเลือกการ์ดอย่างน้อย 1 ใบ");
+
+        sessionCards = targets.map(t => {
+            let card = folders[t.f].cards[t.c];
+            return {...card, folderIdx: t.f, cardIdx: t.c};
+        });
+
+        initPlaySession();
+    }
+
+    function initPlaySession() {
         showPage('playArea');
         playing = true;
 
-        const now = Date.now();
-        // ดึงเฉพาะใบที่ครบกำหนด (due)
-        sessionCards = folders[currentFolderIdx].cards
-            .map((c, i) => ({...c, originalIndex: i}))
-            .filter(c => c.due <= now);
-        
         if (sessionCards.length === 0) {
             document.getElementById("cardFront").innerText = "🎉 ยอดเยี่ยมมาก!";
-            document.getElementById("cardBack").innerText = "คุณทบทวนโฟลเดอร์นี้ครบแล้วสำหรับวันนี้";
+            document.getElementById("cardBack").innerText = "ไม่มีรายการทบทวนในขณะนี้";
             document.getElementById("cardBack").style.display = "block";
             document.getElementById("flipHint").style.display = "none";
             document.getElementById("actionButtons").style.display = "none";
@@ -688,7 +673,8 @@
 
     function answerCard(score) {
         let sc = sessionCards[currentCardIdx];
-        let realCard = folders[currentFolderIdx].cards[sc.originalIndex];
+        // ดึงการ์ดตัวจริงจากฐานข้อมูลแบบ Cross-folder อ้างอิงจาก Index ที่เก็บไว้
+        let realCard = folders[sc.folderIdx].cards[sc.cardIdx];
 
         if (score === 1) {
             realCard.interval = 0;
@@ -701,7 +687,7 @@
             else realCard.interval = Math.round((realCard.interval || 3) * (score === 5 ? 2.5 : 1.5));
             
             realCard.repetition++;
-            realCard.due = Date.now() + (realCard.interval * 86400000); // แปลงวันเป็นมิลลิวินาที
+            realCard.due = Date.now() + (realCard.interval * 86400000); 
         }
 
         applyTagRules(realCard, score > 1);
@@ -731,7 +717,7 @@
     }
 
     // ==========================================
-    // 🌟 ฟังก์ชันเฟส 2: ค้นหาขั้นสูง & Bulk Action
+    // 🌟 ค้นหาขั้นสูง & Bulk Action (จาก 4.0/4.6)
     // ==========================================
     function initSearchPage() {
         let filter = document.getElementById("advFolderFilter");
@@ -819,7 +805,7 @@
     }
 
     // ==========================================
-    // 🌟 ฟังก์ชันเฟส 2: Tag Manager (ตั้งค่า Promote/Demote)
+    // 🌟 Tag Manager (ตั้งค่า Promote/Demote)
     // ==========================================
     function renderTagManagerList() {
         let html = tags.map((t, idx) => {
@@ -854,7 +840,7 @@
     }
 
     // ==========================================
-    // 🌟 ฟังก์ชันเฟส 2: ระบบปฏิทินทบทวน (Calendar)
+    // 🌟 ระบบปฏิทินทบทวน (Calendar)
     // ==========================================
     function renderCalendar() {
         const grid = document.getElementById("calendarGrid");
@@ -870,13 +856,9 @@
         const daysInMonth = new Date(y, m + 1, 0).getDate();
         const todayStr = new Date().toDateString();
 
-        // เติมช่องว่างสัปดาห์แรก
         grid.innerHTML += `<div class="dayHeader">อา</div><div class="dayHeader">จ</div><div class="dayHeader">อ</div><div class="dayHeader">พ</div><div class="dayHeader">พฤ</div><div class="dayHeader">ศ</div><div class="dayHeader">ส</div>`;
-        for (let i = 0; i < firstDay; i++) {
-            grid.innerHTML += `<div style="background:transparent;"></div>`;
-        }
+        for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div style="background:transparent;"></div>`;
 
-        // วาดวันที่
         for (let d = 1; d <= daysInMonth; d++) {
             const dateStr = new Date(y, m, d).toDateString();
             let dueCount = 0;
