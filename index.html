@@ -1041,17 +1041,21 @@
     let currentSearchPage = 1;
 
     function renderSearchTagFilters() {
+        let isNoTagSelected = selectedSearchTags.includes("no_tag");
+        let noTagHtml = `
+            <div onclick="toggleSearchTag('no_tag')" style="cursor:pointer; padding:6px 14px; border-radius:20px; border: 2px solid #94a3b8; background:${isNoTagSelected ? '#94a3b8' : 'white'}; color:${isNoTagSelected ? 'white' : '#64748b'}; font-weight:bold; font-size:13px; transition:0.2s; user-select:none; margin-right:4px;">
+                ${isNoTagSelected ? '✓ ' : '❌ '}ไม่มีแท็ก
+            </div>`;
+
         let html = tags.map(t => {
             let isSelected = selectedSearchTags.includes(t.name);
             return `
-                <div onclick="toggleSearchTag('${t.name}')" 
-                     style="cursor:pointer; padding:6px 14px; border-radius:20px; border: 2px solid ${t.color}; 
-                            background:${isSelected ? t.color : 'white'}; color:${isSelected ? 'white' : t.color}; 
-                            font-weight:bold; font-size:13px; transition:0.2s; user-select:none;">
-                    ${isSelected ? '✓ ' : ''}${t.name}
-                </div>`;
+            <div onclick="toggleSearchTag('${t.name}')" style="cursor:pointer; padding:6px 14px; border-radius:20px; border: 2px solid ${t.color}; background:${isSelected ? t.color : 'white'}; color:${isSelected ? 'white' : t.color}; font-weight:bold; font-size:13px; transition:0.2s; user-select:none;">
+                ${isSelected ? '✓ ' : ''}${t.name}
+            </div>`;
         }).join("");
-        document.getElementById("searchTagFilters").innerHTML = html || "<small style='color:#cbd5e1;'>ยังไม่มีแท็ก</small>";
+
+        document.getElementById("searchTagFilters").innerHTML = noTagHtml + html;
     }
 
     function toggleSearchTag(tagName) {
@@ -1063,23 +1067,34 @@
     function executeAdvancedSearch() {
         let query = document.getElementById("advSearchInput").value.toLowerCase().trim();
         let selectedFolder = document.getElementById("advFolderFilter").value;
-        currentSearchResults = []; 
-
-        folders.forEach(f => {
+        currentSearchResults = [];
+        
+        folders.forEach((f, fIdx) => {
             if(selectedFolder !== "all" && f.name !== selectedFolder) return;
-
+            
             f.cards.forEach((c, idx) => {
                 let matchText = c.front.toLowerCase().includes(query) || c.back.toLowerCase().includes(query);
                 let cardTags = c.tag || [];
-                let matchTags = selectedSearchTags.length === 0 || selectedSearchTags.every(t => cardTags.includes(t));
+                let matchTags = false;
+                
+                if (selectedSearchTags.length === 0) {
+                    matchTags = true;
+                } else if (selectedSearchTags.includes("no_tag")) {
+                    if (cardTags.length === 0 && selectedSearchTags.length === 1) {
+                        matchTags = true;
+                    }
+                } else {
+                    matchTags = selectedSearchTags.every(t => cardTags.includes(t));
+                }
 
                 if (matchText && matchTags) {
-                    currentSearchResults.push({ ...c, folderName: f.name, originalIndex: idx }); 
+                    currentSearchResults.push({ ...c, folderName: f.name, fIdx, cIdx: idx });
                 }
             });
         });
-        currentSearchPage = 1; 
-        renderSearchResultsWithPagination();
+        
+        currentSearchPage = 1;
+        renderSearchResults();
     }
 
     function changeItemsPerPage() { currentSearchPage = 1; renderSearchResultsWithPagination(); }
