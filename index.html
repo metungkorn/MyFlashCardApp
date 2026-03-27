@@ -1422,9 +1422,29 @@
     function showTagEditorInPlay() {
         let area = document.getElementById("tagEditorArea"); area.style.display = area.style.display === "none" ? "block" : "none";
     }
+
+    function findRealCardRefFromSessionCard(card) {
+        if (!card) return null;
+
+        // เคสที่การ์ดมีตำแหน่งอ้างอิงมาจาก search/calendar
+        if (Number.isInteger(card.fIdx) && Number.isInteger(card.cIdx) && folders[card.fIdx]?.cards?.[card.cIdx]) {
+            return folders[card.fIdx].cards[card.cIdx];
+        }
+        if (Number.isInteger(card.folderIndex) && Number.isInteger(card.cardIndex) && folders[card.folderIndex]?.cards?.[card.cardIndex]) {
+            return folders[card.folderIndex].cards[card.cardIndex];
+        }
+
+        // fallback: หาโดย front + back (รองรับกรณีเริ่มจากหน้าหลักที่ไม่มี index)
+        for (let i = 0; i < folders.length; i++) {
+            let j = folders[i].cards.findIndex(c => c.front === card.front && c.back === card.back);
+            if (j > -1) return folders[i].cards[j];
+        }
+        return null;
+    }
     
     function toggleTagOnCurrentCard(tagName) {
         let card = sessionCards[currentIdx];
+        if (!card.tag && Array.isArray(card.tags)) card.tag = [...card.tags];
         if (!card.tag) card.tag = [];
         if (card.tag.includes(tagName)) {
             card.tag = card.tag.filter(t => t !== tagName);
@@ -1435,6 +1455,14 @@
             let interval = tagObj ? Number(tagObj.interval) : 1;
             card.due = Date.now() + (interval * 86400000); 
         }
+
+        // สำคัญ: เขียนกลับการ์ดจริงใน folders เพื่อให้บันทึกได้จริงทุกเมนู
+        let realCard = findRealCardRefFromSessionCard(card);
+        if (realCard) {
+            realCard.tag = [...card.tag];
+            if (card.due) realCard.due = card.due;
+        }
+
         save(); updateTagBadgesInPlay(card);
     }
 
