@@ -1041,21 +1041,6 @@
     let currentSearchPage = 1;
 
     function renderSearchTagFilters() {
-        let tagContainer = document.getElementById("searchTagFilters");
-tagContainer.innerHTML = ""; // ล้างค่าเดิม
-
-// 🌟 สิ่งที่ต้องเพิ่ม: สร้างปุ่ม "ไม่มีแท็ก" แปะไว้เป็นอันแรก
-let noTagBtn = document.createElement("button");
-noTagBtn.innerText = "❌ ไม่มีแท็ก";
-// ใส่ class หรือ style ให้เหมือนปุ่มแท็กอื่นๆ ของคุณ
-noTagBtn.onclick = function() {
-    // โค้ดสำหรับสลับสถานะเลือก/ไม่เลือกแท็กนี้
-    // แล้วเรียกใช้ executeAdvancedSearch()
-};
-tagContainer.appendChild(noTagBtn);
-
-// (ด้านล่างนี้คือโค้ดเดิมของคุณที่จะวนลูป tags.forEach(...) เพื่อวาดแท็กอื่นๆ)
-
         let html = tags.map(t => {
             let isSelected = selectedSearchTags.includes(t.name);
             return `
@@ -1076,25 +1061,6 @@ tagContainer.appendChild(noTagBtn);
     }
 
     function executeAdvancedSearch() {
-        
-        // สมมติว่า selectedSearchTags คือ Array ที่เก็บชื่อแท็กที่ผู้ใช้กดเลือกไว้ (เช่น ["tag1", "no_tag"])
-let matchTag = false;
-
-if (selectedSearchTags.length === 0) {
-    matchTag = true; // ถ้าไม่ได้เลือกแท็กอะไรเลย ก็ให้โชว์ทั้งหมด
-} else {
-    // 🌟 สิ่งที่ต้องเพิ่ม: เช็คกรณีที่ผู้ใช้กดปุ่ม "ไม่มีแท็ก" (no_tag)
-    if (selectedSearchTags.includes("no_tag") && (!card.tags || card.tags.length === 0)) {
-        matchTag = true; 
-    }
-    // เช็คกรณีแท็กปกติ
-    else if (card.tags && card.tags.some(t => selectedSearchTags.includes(t))) {
-        matchTag = true;
-    }
-}
-
-// (ด้านล่างนี้คือโค้ดเดิมของคุณที่จะวนลูป tags.forEach(...) เพื่อวาดแท็กอื่นๆ)
-
         let query = document.getElementById("advSearchInput").value.toLowerCase().trim();
         let selectedFolder = document.getElementById("advFolderFilter").value;
         currentSearchResults = []; 
