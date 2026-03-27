@@ -741,23 +741,57 @@
     }
 
     function addCard() {
-        if (current === -1) return alert("กรุณาเลือกโฟลเดอร์ก่อนครับ");
-        let f = document.getElementById("front").value.trim();
-        let b = document.getElementById("back").value.trim();
-        if (!f || !b) return alert("กรุณากรอกทั้งคำศัพท์และคำแปล");
-        
-        let selectedTags = Array.from(document.querySelectorAll("#multiTagInput input:checked")).map(cb => cb.value);
-        let firstTagObj = tags.find(t => t.name === selectedTags[0]);
-        let interval = firstTagObj ? Number(firstTagObj.interval) : 0; 
+    // 1. โค้ดเดิมของคุณที่ดึงค่าจากช่อง Input
+    // (ชื่อ id ของ input อาจจะต่างไปตามที่คุณตั้งไว้)
+    let frontText = document.getElementById("frontInput").value.trim(); 
+    let backText = document.getElementById("backInput").value.trim();
 
-        folders[current].cards.push({
-            front: f, back: b, tag: selectedTags,
-            due: Date.now() + (interval * 86400000), 
-            show: false, sessionDone: false
-        });
-        document.getElementById("front").value = ""; document.getElementById("back").value = "";
-        save(); viewCards();
+    if (!frontText || !backText) {
+        alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+        return;
     }
+
+    // ==========================================
+    // 2. ลอจิกใหม่: ระบบเช็คและจัดการการ์ดซ้ำ
+    // ==========================================
+    // กรองหาว่ามีการ์ดที่มีหน้า-หลัง เหมือนกันเป๊ะๆ กี่ใบแล้ว 
+    // (โดยตัดตัวเลข (x) ด้านหลังออกชั่วคราวเพื่อเทียบคำต้นฉบับ)
+    let exactMatches = folders[current].cards.filter(card => {
+        let baseFront = card.front.replace(/\s\(\d+\)$/, ''); // ลบ (เลข) ออก
+        return baseFront === frontText && card.back === backText;
+    });
+
+    // ถ้าพบว่ามีการ์ดนี้อยู่แล้ว 1 ใบ และใบแรกยังไม่มีเลข (1) ต่อท้าย ให้เติมให้มันด้วย
+    if (exactMatches.length === 1 && !exactMatches[0].front.match(/\(\d+\)$/)) {
+        exactMatches[0].front = `${frontText} (1)`;
+    }
+
+    // กำหนดชื่อด้านหน้าของการ์ดใบใหม่
+    let finalFrontText = frontText;
+    if (exactMatches.length > 0) {
+        // ใบใหม่ที่กำลังจะเพิ่ม ให้ใส่เลขลำดับต่อไป เช่น (2), (3), (4)
+        finalFrontText = `${frontText} (${exactMatches.length + 1})`;
+    }
+    // ==========================================
+
+    // 3. สร้าง Object การ์ดใหม่ (ให้แน่ใจว่าใช้ finalFrontText)
+    let newCard = {
+        // แนะนำให้เพิ่ม id แบบสุ่มเข้าไปด้วย เพื่อให้โปรแกรมมองแยกตัวกัน 100% แม้ข้อมูลอื่นจะคล้ายกัน
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 5), 
+        front: finalFrontText, // <--- ใช้ชื่อที่ผ่านการเช็คคำซ้ำแล้ว
+        back: backText,
+        // ... (ค่าอื่นๆ ของคุณ เช่น box: 0, nextReview: 0, tag ฯลฯ โครงสร้างเดิม) ...
+    };
+
+    // 4. บันทึกและรีเฟรชหน้าจอ (โค้ดเดิมของคุณ)
+    folders[current].cards.push(newCard);
+    save();
+    render();
+    
+    // เคลียร์ช่อง input
+    document.getElementById("frontInput").value = "";
+    document.getElementById("backInput").value = "";
+}
 
     // 4. VIEW CARDS & DRAG/DROP
     function changeSetLimit() {
