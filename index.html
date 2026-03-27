@@ -244,31 +244,28 @@
         </div>
 
         <div id="calendarModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; justify-content:center; align-items:center;">
-            <div style="background:white; width:90%; max-width:500px; border-radius:20px; padding:20px; max-height:80vh; overflow-y:auto; position:relative;">
-                <h3 id="modalDateTitle" style="margin-top:0; color:#6366f1;">📅 รายการทบทวน</h3>
-                <div id="calendarReviewOptions" style="display: none; background: #e0f2fe; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
-    <h4 style="margin: 0 0 10px 0; color: #0369a1;">🎯 เริ่มทบทวนการ์ดของวันนี้</h4>
-    
-    <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 10px;">
-        <select id="calReviewTagFilter" style="padding: 8px; border-radius: 5px; border: 1px solid #cbd5e1; flex: 1;">
-            </select>
+    <div style="background:white; padding:20px; border-radius:10px; width:90%; max-width:500px; max-height:80vh; overflow-y:auto; position:relative;">
+        <h3 style="margin-top:0; color:#1e293b; border-bottom:2px solid #e2e8f0; padding-bottom:10px;">📅 รายการทบทวนวันที่เลือก</h3>
         
-        <select id="calReviewLimit" style="padding: 8px; border-radius: 5px; border: 1px solid #cbd5e1; flex: 1;">
-            <option value="all">ทบทวนทั้งหมด</option>
-            <option value="10">สุ่มมา 10 ใบ</option>
-            <option value="20">สุ่มมา 20 ใบ</option>
-            <option value="50">สุ่มมา 50 ใบ</option>
-        </select>
-    </div>
-
-    <button onclick="startCalendarReview()" style="width: 100%; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 16px;">
-        ▶️ เริ่มทบทวนเลย!
-    </button>
-</div>
-                <div id="modalCardList"></div>
-                <button onclick="closeModal()" style="width:100%; background:#64748b; color:white; margin-top:15px; padding:12px; border-radius:10px; border:none; cursor:pointer;">ปิดหน้าต่าง</button>
+        <div id="calendarReviewOptions" style="display: none; background: #f0fdf4; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center; border: 1px solid #bbf7d0;">
+            <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 15px;">
+                <select id="calReviewTagFilter" style="padding: 8px; border-radius: 5px; border: 1px solid #cbd5e1; flex: 1;">
+                    </select>
+                <select id="calReviewLimit" style="padding: 8px; border-radius: 5px; border: 1px solid #cbd5e1; flex: 1;">
+                    <option value="all">ทบทวนทั้งหมด</option>
+                    <option value="20">20 ใบ</option>
+                    <option value="50">50 ใบ</option>
+                </select>
             </div>
+            <button onclick="startCalendarReview()" style="width: 100%; padding: 12px; background: #22c55e; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(34, 197, 94, 0.2);">
+                ▶️ เริ่มเรียนของวันนี้
+            </button>
         </div>
+
+        <div id="modalCardList"></div>
+        <button onclick="closeModal()" style="margin-top:15px; padding:8px 15px; background:#ef4444; color:white; border:none; border-radius:5px; cursor:pointer; width:100%;">ปิด</button>
+    </div>
+</div>
 
         <div id="bulkTagModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:3000; justify-content:center; align-items:center;">
             <div style="background:white; width:90%; max-width:400px; border-radius:20px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
@@ -1561,12 +1558,14 @@
     function showDayDetails(y, m, d) {
         const targetDate = new Date(y, m, d).toDateString();
         document.getElementById("modalDateTitle").innerText = `📅 รายการวันที่ ${d}/${m+1}/${y}`;
-        let listHtml = ""; let found = false;
-        let selectedReviewDate = ""; // ประกาศตัวแปรไว้จำวันที่ (เอาไปวางไว้บนสุดของฟังก์ชันปฏิทิน)
+        // (เอาตัวแปรนี้ไปวางไว้นอกสุดของฟังก์ชัน หรือบรรทัดบนสุดของส่วนปฏิทิน)
+    let selectedReviewDate = ""; 
 
-    // ... (โค้ดก่อนหน้า) ...
-    let availableTags = new Set(); // 🌟 เพิ่มตัวเก็บแท็ก
-    
+    // ... (ส่วนการคลิกวันที่) ...
+    let found = false;
+    let listHtml = "";
+    let availableTags = new Set(); // ตัวเก็บแท็ก
+
     folders.forEach((folder, fIndex) => {
         folder.cards.forEach((card, cIndex) => {
             if (new Date(card.due).toDateString() === targetDate) {
@@ -1577,7 +1576,7 @@
                         <div style="font-size:13px; color:#64748b;">📂 ${folder.name} ${card.tags ? '🏷️ '+card.tags.join(', ') : ''}</div>
                     </div>`;
                     
-                // 🌟 เก็บแท็กที่มีในวันนี้เอาไว้เป็นตัวเลือก
+                // เก็บชื่อแท็กมาทำเป็นตัวเลือก
                 if (card.tags && card.tags.length > 0) {
                     card.tags.forEach(t => availableTags.add(t));
                 }
@@ -1587,22 +1586,26 @@
 
     document.getElementById("modalCardList").innerHTML = found ? listHtml : "<p style='text-align:center; color:gray;'>ไม่มีรายการทบทวนในวันนี้</p>";
     
-    // 🌟 ส่วนที่เพิ่มเข้ามาใหม่: จัดการแสดงเมนูตั้งค่าทบทวน
+    // 🌟 ส่วนสำคัญ: สั่งโชว์ปุ่มสีเขียวและตัวกรอง
     if (found) {
         selectedReviewDate = targetDate;
         let tagOptions = `<option value="all">ทุกแท็ก</option><option value="no_tag">ไม่มีแท็ก</option>`;
         availableTags.forEach(t => { tagOptions += `<option value="${t}">${t}</option>`; });
         
         document.getElementById("calReviewTagFilter").innerHTML = tagOptions;
-        document.getElementById("calendarReviewOptions").style.display = "block"; // โชว์เมนู
+        document.getElementById("calendarReviewOptions").style.display = "block"; // เปิดโชว์ปุ่มเขียว!
     } else {
-        document.getElementById("calendarReviewOptions").style.display = "none"; // ซ่อนเมนูถ้าไม่มีการ์ด
+        document.getElementById("calendarReviewOptions").style.display = "none"; // ปิดถ้าไม่มีการ์ด
     }
 
     document.getElementById("calendarModal").style.display = "flex";
         document.getElementById("modalCardList").innerHTML = found ? listHtml : "<p style='text-align:center; color:gray;'>ไม่มีรายการทบทวนในวันนี้</p>";
         document.getElementById("calendarModal").style.display = "flex";
     }
+
+    function closeModal() { document.getElementById("calendarModal").style.display = "none"; }
+    function nextMonth(){ calDate.setMonth(calDate.getMonth()+1); renderCalendar(); }
+    function prevMonth(){ calDate.setMonth(calDate.getMonth()-1); renderCalendar(); }
 
     function startCalendarReview() {
     if (!selectedReviewDate) return;
@@ -1611,18 +1614,14 @@
     let limitValue = document.getElementById("calReviewLimit").value;
     let cardsToReview = [];
 
-    // 1. คัดกรองการ์ดเฉพาะวันและแท็กที่เลือก
+    // ดึงการ์ดเฉพาะวันและแท็กที่เลือก
     folders.forEach((folder, fIndex) => {
         folder.cards.forEach((card, cIndex) => {
             if (new Date(card.due).toDateString() === selectedReviewDate) {
                 let matchTag = false;
-                if (selectedTag === "all") {
-                    matchTag = true;
-                } else if (selectedTag === "no_tag") {
-                    if (!card.tags || card.tags.length === 0) matchTag = true;
-                } else {
-                    if (card.tags && card.tags.includes(selectedTag)) matchTag = true;
-                }
+                if (selectedTag === "all") matchTag = true;
+                else if (selectedTag === "no_tag" && (!card.tags || card.tags.length === 0)) matchTag = true;
+                else if (card.tags && card.tags.includes(selectedTag)) matchTag = true;
 
                 if (matchTag) {
                     cardsToReview.push({ folderIndex: fIndex, cardIndex: cIndex, card: card });
@@ -1636,31 +1635,23 @@
         return;
     }
 
-    // 2. จำกัดจำนวนการ์ด (สุ่มก่อนตัดยอด)
+    // จำกัดจำนวนใบ (20, 50 หรือทั้งหมด)
+    cardsToReview.sort(() => Math.random() - 0.5); // สลับการ์ดเสมอ
     if (limitValue !== "all") {
-        let limit = parseInt(limitValue);
-        cardsToReview.sort(() => Math.random() - 0.5); // สลับไพ่
-        cardsToReview = cardsToReview.slice(0, limit); // ตัดยอด
-    } else {
-        cardsToReview.sort(() => Math.random() - 0.5); // ถึงดูทั้งหมดก็สลับไพ่เพื่อความสนุก
+        cardsToReview = cardsToReview.slice(0, parseInt(limitValue)); 
     }
 
-    // 3. ปิดหน้าปฏิทิน แล้วส่งการ์ดเข้าโหมดทบทวน
-    closeModal();
+    closeModal(); // ปิดหน้าต่างปฏิทิน
     
-    // 🌟 โค้ดส่วนนี้สำคัญมาก: ส่งข้อมูลไปยังหน้าเล่นแอปของคุณ 🌟
-    // สมมติว่าในแอปคุณมีตัวแปรอาร์เรย์สำหรับเล่นการ์ดชื่อ currentPlayCards หรืออะไรสักอย่าง
-    // คุณจะต้องเขียนรับค่าตรงนี้ เช่น:
-    // startReviewMode(cardsToReview); 
+    // ==========================================
+    // ⚠️ สำคัญมาก: เปลี่ยนบรรทัดนี้ ให้เป็นฟังก์ชันเริ่มเล่นแอปของคุณ
+    // เช่น ถ้าแอปคุณใช้ฟังก์ชัน startStudy() หรือ reviewCards(cards)
+    // ให้ใส่ชื่อฟังก์ชันนั้นลงไปตรงนี้ได้เลยครับ!
+    // ==========================================
     
-    alert(`ระบบพร้อมทบทวนการ์ดจำนวน ${cardsToReview.length} ใบ! \n(เชื่อมต่อฟังก์ชันเล่นการ์ดของคุณได้ที่บรรทัดนี้เลยครับ)`);
+    console.log("ไพ่ที่พร้อมเล่น:", cardsToReview);
+    alert(`เริ่มเรียนจำนวน ${cardsToReview.length} ใบ! \n(กรุณาเชื่อมต่อฟังก์ชันเล่นการ์ดของคุณที่บรรทัดล่างสุดของฟังก์ชันนี้)`);
 }
-
-    function closeModal() { document.getElementById("calendarModal").style.display = "none"; }
-    function nextMonth(){ calDate.setMonth(calDate.getMonth()+1); renderCalendar(); }
-    function prevMonth(){ calDate.setMonth(calDate.getMonth()-1); renderCalendar(); }
-
-
 
     // ==========================================
     // 💾 ระบบสำรองข้อมูล (Manual Backup / Restore)
