@@ -243,6 +243,25 @@
             <button onclick="goToHome()" style="margin-top:20px; width:100%; background:#64748b; color:white; padding:12px; border-radius:10px; border:none; cursor:pointer; font-weight:bold;">⬅️ ปิดหน้าปฏิทิน</button>
         </div>
 
+        <div id="calendarReviewOptions" style="display: none; background: #e0f2fe; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
+    <h4 style="margin: 0 0 10px 0; color: #0369a1;">🎯 เริ่มทบทวนของวันนี้</h4>
+    
+    <select id="calReviewTagFilter" style="padding: 8px; border-radius: 5px; border: 1px solid #cbd5e1; margin-right: 5px;">
+        </select>
+    
+    <select id="calReviewLimit" style="padding: 8px; border-radius: 5px; border: 1px solid #cbd5e1; margin-right: 5px;">
+        <option value="all">ทั้งหมด</option>
+        <option value="10">10 ใบ</option>
+        <option value="20">20 ใบ</option>
+        <option value="50">50 ใบ</option>
+        <option value="100">100 ใบ</option>
+    </select>
+
+    <button onclick="startCalendarReview()" style="padding: 8px 20px; background: #2563eb; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+        ▶️ เริ่มเล่น (Play)
+    </button>
+</div>
+
         <div id="calendarModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; justify-content:center; align-items:center;">
             <div style="background:white; width:90%; max-width:500px; border-radius:20px; padding:20px; max-height:80vh; overflow-y:auto; position:relative;">
                 <h3 id="modalDateTitle" style="margin-top:0; color:#6366f1;">📅 รายการทบทวน</h3>
@@ -1570,6 +1589,99 @@
         }
         document.getElementById("calendarGrid").innerHTML = html;
     }
+
+    // 1. สร้างตัวแปรเก็บวันที่เรากำลังคลิกดูอยู่
+let selectedReviewDate = ""; 
+
+// 2. เพิ่มฟังก์ชันดึงแท็กมาใส่ Dropdown ตอนเปิดปฏิทิน
+// หมายเหตุ: ฟังก์ชันนี้ให้คุณเอาไปแทรกไว้ "ข้างใน" ฟังก์ชันที่คุณใช้เปิด Modal ปฏิทิน (ตอนที่มีการกำหนดค่า targetDate แล้ว)
+function setupCalendarModal(targetDate, hasCards) {
+    selectedReviewDate = targetDate; // จำวันที่เอาไว้
+
+    if (hasCards) {
+        // หาว่าการ์ดในวันนี้ มีแท็กอะไรอยู่บ้าง
+        let availableTags = new Set();
+        folders.forEach(folder => {
+            folder.cards.forEach(card => {
+                if (new Date(card.due).toDateString() === targetDate) {
+                    if (card.tags && card.tags.length > 0) {
+                        card.tags.forEach(t => availableTags.add(t));
+                    }
+                }
+            });
+        });
+
+        // สร้างตัวเลือกให้ Dropdown
+        let tagOptions = `<option value="all">ทุกแท็ก</option><option value="no_tag">ไม่มีแท็ก</option>`;
+        availableTags.forEach(t => {
+            tagOptions += `<option value="${t}">${t}</option>`;
+        });
+        
+        document.getElementById("calReviewTagFilter").innerHTML = tagOptions;
+        document.getElementById("calendarReviewOptions").style.display = "block"; // แสดงแผงควบคุม
+    } else {
+        document.getElementById("calendarReviewOptions").style.display = "none"; // ซ่อนแผงควบคุมถ้าไม่มีการ์ด
+    }
+}
+
+// ===============================================
+// 🚀 3. ฟังก์ชันกดเริ่มเล่น (ดึงไปเฉพาะใบที่ผ่านตัวกรอง)
+// ===============================================
+function startCalendarReview() {
+    if (!selectedReviewDate) return;
+
+    let selectedTag = document.getElementById("calReviewTagFilter").value;
+    let limitValue = document.getElementById("calReviewLimit").value;
+    
+    // ตะกร้าเก็บการ์ดที่ผ่านเงื่อนไข
+    let filteredCards = []; 
+
+    // วนลูปหาการ์ดที่ตรงกับ "วันที่" และ "แท็ก"
+    folders.forEach((folder, folderIndex) => {
+        folder.cards.forEach((card, cardIndex) => {
+            if (new Date(card.due).toDateString() === selectedReviewDate) {
+                
+                let matchTag = false;
+                if (selectedTag === "all") {
+                    matchTag = true;
+                } else if (selectedTag === "no_tag") {
+                    if (!card.tags || card.tags.length === 0) matchTag = true;
+                } else {
+                    if (card.tags && card.tags.includes(selectedTag)) matchTag = true;
+                }
+
+                if (matchTag) {
+                    // เก็บการ์ดพร้อมตำแหน่งโฟลเดอร์ไว้ เพื่อให้บันทึกตอนตอบถูก/ผิดได้ถูกต้อง
+                    filteredCards.push({ folderIndex, cardIndex, card });
+                }
+            }
+        });
+    });
+
+    if (filteredCards.length === 0) {
+        alert("ไม่มีการ์ดที่ตรงกับแท็กที่คุณเลือกในวันนี้ครับ!");
+        return;
+    }
+
+    // ตัดยอดจำนวนการ์ด (เช่น เอาแค่ 20 ใบแรก)
+    if (limitValue !== "all") {
+        let limit = parseInt(limitValue);
+        // สลับการ์ดแบบสุ่ม (Shuffle) ก่อนตัดยอด เพื่อไม่ให้ซ้ำซาก
+        filteredCards.sort(() => Math.random() - 0.5); 
+        filteredCards = filteredCards.slice(0, limit);
+    }
+
+    // ปิดหน้าต่างปฏิทิน
+    closeModal(); 
+
+    // 🌟 ส่งการ์ดเข้าไปในระบบทบทวนของคุณ! 🌟
+    // ตรงนี้ขึ้นอยู่กับว่าระบบ Review เดิมของคุณเขียนไว้ยังไง 
+    // ตัวอย่างเช่น: startReviewSession(filteredCards);
+    console.log("เริ่มทบทวนการ์ดจำนวน:", filteredCards.length, filteredCards);
+    alert(`เริ่มทบทวนการ์ด ${filteredCards.length} ใบ!`);
+    
+    // *** คุณต้องเรียกใช้ฟังก์ชันเริ่มเล่น Flashcard เดิมของคุณตรงนี้ ***
+}
 
     
 
