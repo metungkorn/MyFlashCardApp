@@ -244,29 +244,28 @@
         </div>
 
         <div id="calendarModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; justify-content:center; align-items:center;">
-    <div style="background:white; padding:20px; border-radius:10px; width:90%; max-width:500px; max-height:80vh; overflow-y:auto; position:relative;">
-        <h3 style="margin-top:0; color:#1e293b; border-bottom:2px solid #e2e8f0; padding-bottom:10px;">📅 รายการทบทวนวันที่เลือก</h3>
-        
-        <div id="calendarReviewOptions" style="display: none; background: #f0fdf4; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center; border: 1px solid #bbf7d0;">
-            <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 15px;">
-                <select id="calReviewTagFilter" style="padding: 8px; border-radius: 5px; border: 1px solid #cbd5e1; flex: 1;">
-                    </select>
-                <select id="calReviewLimit" style="padding: 8px; border-radius: 5px; border: 1px solid #cbd5e1; flex: 1;">
-                    <option value="all">ทบทวนทั้งหมด</option>
-                    <option value="10">10 ใบ</option>
-                    <option value="20">20 ใบ</option>
-                    <option value="50">50 ใบ</option>
-                </select>
-            </div>
-            <button onclick="startCalendarReview()" style="width: 100%; padding: 12px; background: #22c55e; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(34, 197, 94, 0.2);">
-                ▶️ เริ่มเรียนของวันนี้
-            </button>
-        </div>
+            <div style="background:white; padding:20px; border-radius:10px; width:90%; max-width:500px; max-height:80vh; overflow-y:auto; position:relative;">
+                <h3 id="modalDateTitle" style="margin-top:0; color:#1e293b; border-bottom:2px solid #e2e8f0; padding-bottom:10px;">📅 รายการทบทวนวันที่เลือก</h3>
+                
+                <div id="calendarReviewOptions" style="display: none; background: #f0fdf4; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center; border: 1px solid #bbf7d0;">
+                    <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 15px;">
+                        <select id="calReviewTagFilter" style="padding: 8px; border-radius: 5px; border: 1px solid #cbd5e1; flex: 1;"></select>
+                        <select id="calReviewLimit" style="padding: 8px; border-radius: 5px; border: 1px solid #cbd5e1; flex: 1;">
+                            <option value="all">ทบทวนทั้งหมด</option>
+                            <option value="10">10 ใบ</option>
+                            <option value="20">20 ใบ</option>
+                            <option value="50">50 ใบ</option>
+                        </select>
+                    </div>
+                    <button onclick="startCalendarReview()" style="width: 100%; padding: 12px; background: #22c55e; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(34, 197, 94, 0.2);">
+                        ▶️ เริ่มเรียนของวันนี้
+                    </button>
+                </div>
 
-        <div id="modalCardList"></div>
-        <button onclick="closeModal()" style="margin-top:15px; padding:8px 15px; background:#ef4444; color:white; border:none; border-radius:5px; cursor:pointer; width:100%;">ปิด</button>
-    </div>
-</div>
+                <div id="modalCardList"></div>
+                <button onclick="closeModal()" style="margin-top:15px; padding:8px 15px; background:#ef4444; color:white; border:none; border-radius:5px; cursor:pointer; width:100%;">ปิด</button>
+            </div>
+        </div>
 
         <div id="bulkTagModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:3000; justify-content:center; align-items:center;">
             <div style="background:white; width:90%; max-width:400px; border-radius:20px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
@@ -1058,17 +1057,21 @@
     let currentSearchPage = 1;
 
     function renderSearchTagFilters() {
+        let isNoTagSelected = selectedSearchTags.includes("no_tag");
+        let noTagHtml = `
+            <div onclick="toggleSearchTag('no_tag')" style="cursor:pointer; padding:6px 14px; border-radius:20px; border: 2px solid #94a3b8; background:${isNoTagSelected ? '#94a3b8' : 'white'}; color:${isNoTagSelected ? 'white' : '#64748b'}; font-weight:bold; font-size:13px; transition:0.2s; user-select:none; margin-right:4px;">
+                ${isNoTagSelected ? '✓ ' : '❌ '}ไม่มีแท็ก
+            </div>`;
+
         let html = tags.map(t => {
             let isSelected = selectedSearchTags.includes(t.name);
             return `
-                <div onclick="toggleSearchTag('${t.name}')" 
-                     style="cursor:pointer; padding:6px 14px; border-radius:20px; border: 2px solid ${t.color}; 
-                            background:${isSelected ? t.color : 'white'}; color:${isSelected ? 'white' : t.color}; 
-                            font-weight:bold; font-size:13px; transition:0.2s; user-select:none;">
-                    ${isSelected ? '✓ ' : ''}${t.name}
-                </div>`;
+            <div onclick="toggleSearchTag('${t.name}')" style="cursor:pointer; padding:6px 14px; border-radius:20px; border: 2px solid ${t.color}; background:${isSelected ? t.color : 'white'}; color:${isSelected ? 'white' : t.color}; font-weight:bold; font-size:13px; transition:0.2s; user-select:none;">
+                ${isSelected ? '✓ ' : ''}${t.name}
+            </div>`;
         }).join("");
-        document.getElementById("searchTagFilters").innerHTML = html || "<small style='color:#cbd5e1;'>ยังไม่มีแท็ก</small>";
+
+        document.getElementById("searchTagFilters").innerHTML = noTagHtml + html;
     }
 
     function toggleSearchTag(tagName) {
@@ -1080,23 +1083,34 @@
     function executeAdvancedSearch() {
         let query = document.getElementById("advSearchInput").value.toLowerCase().trim();
         let selectedFolder = document.getElementById("advFolderFilter").value;
-        currentSearchResults = []; 
-
-        folders.forEach(f => {
+        currentSearchResults = [];
+        
+        folders.forEach((f, fIdx) => {
             if(selectedFolder !== "all" && f.name !== selectedFolder) return;
-
+            
             f.cards.forEach((c, idx) => {
                 let matchText = c.front.toLowerCase().includes(query) || c.back.toLowerCase().includes(query);
                 let cardTags = c.tag || [];
-                let matchTags = selectedSearchTags.length === 0 || selectedSearchTags.every(t => cardTags.includes(t));
+                let matchTags = false;
+                
+                if (selectedSearchTags.length === 0) {
+                    matchTags = true;
+                } else if (selectedSearchTags.includes("no_tag")) {
+                    if (cardTags.length === 0 && selectedSearchTags.length === 1) {
+                        matchTags = true;
+                    }
+                } else {
+                    matchTags = selectedSearchTags.every(t => cardTags.includes(t));
+                }
 
                 if (matchText && matchTags) {
-                    currentSearchResults.push({ ...c, folderName: f.name, originalIndex: idx }); 
+                    currentSearchResults.push({ ...c, folderName: f.name, fIdx, cIdx: idx });
                 }
             });
         });
-        currentSearchPage = 1; 
-        renderSearchResultsWithPagination();
+        
+        currentSearchPage = 1;
+        renderSearchResults();
     }
 
     function changeItemsPerPage() { currentSearchPage = 1; renderSearchResultsWithPagination(); }
@@ -1556,29 +1570,113 @@
 
     
 
+    // เก็บวันที่ที่เลือกไว้ เพื่อเอาไปเริ่มทบทวน
+    let selectedReviewDate = "";
+
     function showDayDetails(y, m, d) {
         const targetDate = new Date(y, m, d).toDateString();
         document.getElementById("modalDateTitle").innerText = `📅 รายการวันที่ ${d}/${m+1}/${y}`;
-        let listHtml = ""; let found = false;
-        folders.forEach(folder => {
-            folder.cards.forEach(card => {
-                if (new Date(card.due).toDateString() === targetDate) {
+        showDateCards(targetDate);
+    }
+
+    // ฟังก์ชันนี้จะทำงานตอนคุณคลิกที่วันที่ในปฏิทิน
+    function showDateCards(targetDate) {
+        let found = false;
+        let listHtml = "";
+        let availableTags = new Set();
+
+        // ค้นหาการ์ดที่ตรงกับวันที่คลิก
+        folders.forEach((folder) => {
+            folder.cards.forEach((card) => {
+                if (card.due && new Date(card.due).toDateString() === targetDate) {
                     found = true;
                     listHtml += `
                         <div style="padding:12px; border-bottom:1px solid #eee; text-align:left;">
                             <strong style="color:#1e293b;">${card.front}</strong>
-                            <div style="font-size:13px; color:#64748b;">📂 ${folder.name}</div>
+                            <div style="font-size:13px; color:#64748b;">📂 ${folder.name} ${(card.tag && card.tag.length > 0) ? '🏷️ ' + card.tag.join(', ') : ''}</div>
                         </div>`;
+
+                    if (card.tag && card.tag.length > 0) {
+                        card.tag.forEach(t => availableTags.add(t));
+                    }
                 }
             });
         });
+
+        // แสดงรายการคำศัพท์
         document.getElementById("modalCardList").innerHTML = found ? listHtml : "<p style='text-align:center; color:gray;'>ไม่มีรายการทบทวนในวันนี้</p>";
+
+        // 🌟 สั่งเปิดปุ่มสีเขียวและดึงแท็กมาใส่
+        if (found) {
+            selectedReviewDate = targetDate;
+            let tagOptions = `<option value="all">ทุกแท็ก</option><option value="no_tag">ไม่มีแท็ก</option>`;
+            Array.from(availableTags).sort((a,b) => a.localeCompare(b, 'th')).forEach(t => {
+                tagOptions += `<option value="${t}">${t}</option>`;
+            });
+
+            document.getElementById("calReviewTagFilter").innerHTML = tagOptions;
+            document.getElementById("calendarReviewOptions").style.display = "block"; // โชว์แผงสีเขียว
+        } else {
+            document.getElementById("calendarReviewOptions").style.display = "none"; // ซ่อนแผงถ้าไม่มีการ์ด
+        }
+
+        // เปิดป๊อปอัป
         document.getElementById("calendarModal").style.display = "flex";
     }
 
     function closeModal() { document.getElementById("calendarModal").style.display = "none"; }
     function nextMonth(){ calDate.setMonth(calDate.getMonth()+1); renderCalendar(); }
     function prevMonth(){ calDate.setMonth(calDate.getMonth()-1); renderCalendar(); }
+
+    // ===== Calendar Review (จาก Modal) =====
+    // ฟังก์ชันนี้จะทำงานเมื่อกดปุ่ม "▶️ เริ่มเรียนของวันนี้"
+    function startCalendarReview() {
+        if (!selectedReviewDate) return;
+
+        let selectedTag = document.getElementById("calReviewTagFilter")?.value || "all";
+        let limitValue = document.getElementById("calReviewLimit")?.value || "all";
+        let cardsToReview = [];
+
+        // ดึงการ์ดที่ตรงกับเงื่อนไข
+        folders.forEach((folder, fIndex) => {
+            folder.cards.forEach((card, cIndex) => {
+                if (card.due && new Date(card.due).toDateString() === selectedReviewDate) {
+                    let matchTag = false;
+                    if (selectedTag === "all") matchTag = true;
+                    else if (selectedTag === "no_tag" && (!card.tag || card.tag.length === 0)) matchTag = true;
+                    else if (card.tag && card.tag.includes(selectedTag)) matchTag = true;
+
+                    if (matchTag) {
+                        // เก็บข้อมูลไว้สำหรับการเรียน
+                        cardsToReview.push({ folderIndex: fIndex, cardIndex: cIndex, card: card });
+                    }
+                }
+            });
+        });
+
+        if (cardsToReview.length === 0) {
+            alert("ไม่มีการ์ดที่ตรงกับเงื่อนไขแท็กที่คุณเลือกครับ");
+            return;
+        }
+
+        // สุ่มและตัดจำนวนไพ่
+        cardsToReview.sort(() => Math.random() - 0.5);
+        if (limitValue !== "all") {
+            let n = parseInt(limitValue, 10);
+            if (!Number.isNaN(n)) cardsToReview = cardsToReview.slice(0, n);
+        }
+
+        // ปิดหน้าปฏิทิน
+        document.getElementById("calendarModal").style.display = "none";
+
+        // นำการ์ดไปเล่นจริง (ใช้รูปแบบเดียวกับโหมด Play ของโปรเจกต์นี้)
+        let deck = cardsToReview.map(x => x.card);
+        let tempDeck = JSON.parse(JSON.stringify(deck));
+        if (shuffleMode) tempDeck.sort(() => Math.random() - 0.5);
+        hideAllPages();
+        document.getElementById("list").style.display = "block";
+        startSessionWithCards(tempDeck);
+    }
 
     // ==========================================
     // 💾 ระบบสำรองข้อมูล (Manual Backup / Restore)
