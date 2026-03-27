@@ -1570,8 +1570,9 @@
 
     
 
-    // เก็บวันที่ที่เลือกไว้ เพื่อเอาไปเริ่มทบทวน
+    // เก็บวันที่และรายการการ์ดที่เลือกไว้ เพื่อเอาไปเริ่มทบทวน
     let selectedReviewDate = "";
+    let selectedDateCards = [];
 
     function showDayDetails(y, m, d) {
         const targetDate = new Date(y, m, d).toDateString();
@@ -1584,12 +1585,14 @@
         let found = false;
         let listHtml = "";
         let availableTags = new Set();
+        selectedDateCards = [];
 
         // ค้นหาการ์ดที่ตรงกับวันที่คลิก
-        folders.forEach((folder) => {
-            folder.cards.forEach((card) => {
+        folders.forEach((folder, fIndex) => {
+            folder.cards.forEach((card, cIndex) => {
                 if (card.due && new Date(card.due).toDateString() === targetDate) {
                     found = true;
+                    selectedDateCards.push({ folderIndex: fIndex, cardIndex: cIndex, card });
                     listHtml += `
                         <div style="padding:12px; border-bottom:1px solid #eee; text-align:left;">
                             <strong style="color:#1e293b;">${card.front}</strong>
@@ -1637,21 +1640,16 @@
         let limitValue = document.getElementById("calReviewLimit")?.value || "all";
         let cardsToReview = [];
 
-        // ดึงการ์ดที่ตรงกับเงื่อนไข
-        folders.forEach((folder, fIndex) => {
-            folder.cards.forEach((card, cIndex) => {
-                if (card.due && new Date(card.due).toDateString() === selectedReviewDate) {
-                    let matchTag = false;
-                    if (selectedTag === "all") matchTag = true;
-                    else if (selectedTag === "no_tag" && (!card.tag || card.tag.length === 0)) matchTag = true;
-                    else if (card.tag && card.tag.includes(selectedTag)) matchTag = true;
+        // ใช้รายการที่ค้นพบใน popup โดยตรง เพื่อลดโอกาส mismatch ตอนกดปุ่มเริ่มเรียน
+        selectedDateCards.forEach((entry) => {
+            let card = entry.card;
+            let cardTags = Array.isArray(card.tag) ? card.tag : (Array.isArray(card.tags) ? card.tags : []);
+            let matchTag = false;
+            if (selectedTag === "all") matchTag = true;
+            else if (selectedTag === "no_tag" && cardTags.length === 0) matchTag = true;
+            else if (cardTags.includes(selectedTag)) matchTag = true;
 
-                    if (matchTag) {
-                        // เก็บข้อมูลไว้สำหรับการเรียน
-                        cardsToReview.push({ folderIndex: fIndex, cardIndex: cIndex, card: card });
-                    }
-                }
-            });
+            if (matchTag) cardsToReview.push(entry);
         });
 
         if (cardsToReview.length === 0) {
