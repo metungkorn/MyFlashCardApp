@@ -193,6 +193,19 @@
                 <option value="all">-- ค้นหาทุกโฟลเดอร์ --</option>
             </select>
 
+            <div style="margin-bottom:15px; padding-top:12px; border-top:1px solid #e2e8f0;">
+                <div style="font-size:13px; font-weight:bold; color:#475569; margin-bottom:8px;">📅 กรองตามวันนัดทบทวน (due)</div>
+                <select id="advDueFilterMode" onchange="onAdvDueFilterModeChange()" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; border:1px solid #cbd5e1;">
+                    <option value="all">ทุกวัน — ปิดตัวกรองวันที่</option>
+                    <option value="today">ทบทวนวันนี้</option>
+                    <option value="pick">เลือกวันที่ (วัน / เดือน / ปี)</option>
+                </select>
+                <div id="advDueDatePickWrap" style="display:none;">
+                    <label style="font-size:12px; color:#64748b; display:block; margin-bottom:6px;">เลือกวันที่ (ปฏิทิน — ค.ศ.)</label>
+                    <input type="date" id="advDueDatePick" onchange="executeAdvancedSearch()" style="width:100%; box-sizing:border-box; padding:10px; border-radius:8px; border:1px solid #cbd5e1;">
+                </div>
+            </div>
+
             <div id="searchTagFilters" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px;"></div>
         </div>
 
@@ -707,6 +720,12 @@
         document.getElementById("searchPage").style.display = "block";
         selectedSearchTags = [];
         document.getElementById("advSearchInput").value = "";
+        let dueModeEl = document.getElementById("advDueFilterMode");
+        if (dueModeEl) dueModeEl.value = "all";
+        let dueWrap = document.getElementById("advDueDatePickWrap");
+        if (dueWrap) dueWrap.style.display = "none";
+        let duePick = document.getElementById("advDueDatePick");
+        if (duePick) duePick.value = "";
         
         let fFilter = document.getElementById("advFolderFilter");
         fFilter.innerHTML = `<option value="all">-- ค้นหาทุกโฟลเดอร์ --</option>` + 
@@ -1099,6 +1118,40 @@
         renderSearchTagFilters(); executeAdvancedSearch();
     }
 
+    function onAdvDueFilterModeChange() {
+        let mode = document.getElementById("advDueFilterMode")?.value || "all";
+        let wrap = document.getElementById("advDueDatePickWrap");
+        if (wrap) wrap.style.display = mode === "pick" ? "block" : "none";
+        if (mode !== "pick") {
+            let dp = document.getElementById("advDueDatePick");
+            if (dp) dp.value = "";
+        }
+        executeAdvancedSearch();
+    }
+
+    function cardMatchesAdvDueFilter(card) {
+        let modeEl = document.getElementById("advDueFilterMode");
+        let mode = modeEl ? modeEl.value : "all";
+        if (mode === "all") return true;
+        if (!card.due) return false;
+        let dueStr = new Date(card.due).toDateString();
+        if (mode === "today") {
+            let t = new Date();
+            let targetStr = new Date(t.getFullYear(), t.getMonth(), t.getDate()).toDateString();
+            return dueStr === targetStr;
+        }
+        if (mode === "pick") {
+            let v = document.getElementById("advDueDatePick")?.value;
+            if (!v) return true;
+            let p = v.split("-");
+            let y = parseInt(p[0], 10), mo = parseInt(p[1], 10) - 1, d = parseInt(p[2], 10);
+            if (Number.isNaN(y) || Number.isNaN(mo) || Number.isNaN(d)) return true;
+            let targetStr = new Date(y, mo, d).toDateString();
+            return dueStr === targetStr;
+        }
+        return true;
+    }
+
     function executeAdvancedSearch(opts) {
         opts = opts || {};
         let query = document.getElementById("advSearchInput").value.toLowerCase().trim();
@@ -1123,7 +1176,9 @@
                     matchTags = selectedSearchTags.every(t => cardTags.includes(t));
                 }
 
-                if (matchText && matchTags) {
+                let matchDue = cardMatchesAdvDueFilter(c);
+
+                if (matchText && matchTags && matchDue) {
                     currentSearchResults.push({ ...c, folderName: f.name, fIdx, cIdx: idx });
                 }
             });
