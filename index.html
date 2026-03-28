@@ -619,6 +619,8 @@
     let isShowingAnswer = false;
     let shuffleMode = false;
     let playing = false;
+    // หลังจบโหมดเรียน: "home" | "search"
+    let returnAfterPlayTarget = "home";
 
     let itemsPerSubDeck = 20; 
     let currentSubDeckPage = 0; 
@@ -680,6 +682,23 @@
         document.getElementById("list").style.display = "block"; 
         playing = false;
         render();
+    }
+
+    function finishPlaySession() {
+        playing = false;
+        let target = returnAfterPlayTarget;
+        returnAfterPlayTarget = "home";
+        if (sidebarOpen) toggleSidebar();
+        if (target === "search") {
+            hideAllPages();
+            document.getElementById("searchPage").style.display = "block";
+            document.getElementById("list").style.display = "none";
+            renderSearchResultsWithPagination();
+            let r = document.getElementById("advSearchResult");
+            if (r) r.scrollIntoView({ behavior: "smooth", block: "start" });
+        } else {
+            goToHome();
+        }
     }
 
     function openSearchPage() {
@@ -1080,7 +1099,8 @@
         renderSearchTagFilters(); executeAdvancedSearch();
     }
 
-    function executeAdvancedSearch() {
+    function executeAdvancedSearch(opts) {
+        opts = opts || {};
         let query = document.getElementById("advSearchInput").value.toLowerCase().trim();
         let selectedFolder = document.getElementById("advFolderFilter").value;
         currentSearchResults = [];
@@ -1109,7 +1129,17 @@
             });
         });
         
-        currentSearchPage = 1;
+        if (!opts.keepPage) {
+            currentSearchPage = 1;
+        } else {
+            let itemsPerPageVal = document.getElementById("itemsPerPageSelect").value;
+            let totalResults = currentSearchResults.length;
+            let itemsPerPage = itemsPerPageVal === "all" ? Math.max(totalResults, 1) : parseInt(itemsPerPageVal, 10);
+            if (!itemsPerPage || itemsPerPage < 1) itemsPerPage = 20;
+            let totalPages = totalResults === 0 ? 1 : Math.ceil(totalResults / itemsPerPage);
+            if (currentSearchPage > totalPages) currentSearchPage = totalPages;
+            if (currentSearchPage < 1) currentSearchPage = 1;
+        }
         renderSearchResultsWithPagination();
     }
 
@@ -1191,7 +1221,7 @@
             let card = folders[fIdx].cards.find(c => c.front === frontText);
             if(card && card.tag) {
                 card.tag = card.tag.filter(t => t !== tagName);
-                save(); executeAdvancedSearch();
+                save(); executeAdvancedSearch({ keepPage: true });
             }
         }
     }
@@ -1210,7 +1240,7 @@
                     let interval = tagObj ? Number(tagObj.interval) : 1;
                     card.due = Date.now() + (interval * 86400000); 
 
-                    save(); executeAdvancedSearch();
+                    save(); executeAdvancedSearch({ keepPage: true });
                 }
             }
         }
@@ -1253,7 +1283,7 @@
             let fIdx = folders.findIndex(f => f.name === fname);
             if(fIdx > -1) folders[fIdx].cards = folders[fIdx].cards.filter(c => c.front !== ffront);
         });
-        save(); executeAdvancedSearch(); 
+        save(); executeAdvancedSearch({ keepPage: true }); 
     }
 
     function openBulkTagModal() {
@@ -1305,7 +1335,7 @@
         });
         
         save(); 
-        executeAdvancedSearch(); 
+        executeAdvancedSearch({ keepPage: true }); 
         closeBulkTagModal();
         alert(`เพิ่มแท็กและอัปเดตวันทบทวนเรียบร้อยแล้ว!`);
     }
@@ -1322,7 +1352,7 @@
         if (pageCards.length === 0) return;
         let tempDeck = JSON.parse(JSON.stringify(pageCards));
         if (shuffleMode) tempDeck.sort(() => Math.random() - 0.5);
-        
+        returnAfterPlayTarget = "search";
         document.getElementById("searchPage").style.display = "none";
         document.getElementById("list").style.display = "block";
         startSessionWithCards(tempDeck);
@@ -1333,6 +1363,7 @@
         if (current === -1 || !folders[current] || folders[current].cards.length === 0) return alert("ไม่มีการ์ดในโฟลเดอร์นี้ให้เรียนครับ");
         let tempDeck = JSON.parse(JSON.stringify(folders[current].cards));
         if (shuffleMode) tempDeck.sort(() => Math.random() - 0.5);
+        returnAfterPlayTarget = "home";
         hideAllPages(); document.getElementById("list").style.display = "block";
         startSessionWithCards(tempDeck);
     }
@@ -1350,7 +1381,7 @@
     }
 
     function showCustomCard() {
-        if (currentIdx >= sessionCards.length) { alert("เย้! เรียนจบชุดแล้วครับ"); goToHome(); return; }
+        if (currentIdx >= sessionCards.length) { alert("เย้! เรียนจบชุดแล้วครับ"); finishPlaySession(); return; }
 
         let c = sessionCards[currentIdx]; isShowingAnswer = false;
         let currentTagHTML = (c.tag || []).map(tn => {
@@ -1394,7 +1425,7 @@
                     <button onclick="nextCard()" style="background:#10b981; color:white; padding:12px; border-radius:12px; border:none; font-weight:bold; cursor:pointer;">ใบถัดไป ➡️</button>
                     <button onclick="skipCard()" style="grid-column: span 2; background:none; color:#94a3b8; border:none; padding:10px; font-size:14px; cursor:pointer;">⏭️ ข้ามคำนี้ไปท้ายสุด</button>
                 </div>
-                <button onclick="goToHome()" style="margin-top:20px; background:none; color:#cbd5e1; border:none; cursor:pointer; text-decoration:underline; font-size:12px;">เลิกเรียนและกลับหน้าหลัก</button>
+                <button onclick="finishPlaySession()" style="margin-top:20px; background:none; color:#cbd5e1; border:none; cursor:pointer; text-decoration:underline; font-size:12px;">เลิกเรียน</button>
             </div>
         `;
         document.getElementById("list").innerHTML = html;
@@ -1699,6 +1730,7 @@
         let deck = cardsToReview.map(x => x.card);
         let tempDeck = JSON.parse(JSON.stringify(deck));
         if (shuffleMode) tempDeck.sort(() => Math.random() - 0.5);
+        returnAfterPlayTarget = "home";
         hideAllPages();
         document.getElementById("list").style.display = "block";
         startSessionWithCards(tempDeck);
