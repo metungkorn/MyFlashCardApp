@@ -679,6 +679,9 @@
     // ภาษาอ่านออกเสียง (TTS): front = auto|th|en|ja, back = th|en|ja
     let ttsLangFront = localStorage.getItem("ttsLangFront") || "auto";
     let ttsLangBack = localStorage.getItem("ttsLangBack") || "th";
+    let autoPlayRunning = false;
+    let autoPlayLoop = localStorage.getItem("autoPlayLoop") === "true";
+    let sessionShowAutoControls = false;
 
     let itemsPerSubDeck = 20; 
     let currentSubDeckPage = 0; 
@@ -744,6 +747,7 @@
     }
 
     function finishPlaySession() {
+        stopAutoPlay();
         playing = false;
         let target = returnAfterPlayTarget;
         returnAfterPlayTarget = "home";
@@ -1477,6 +1481,7 @@
         let tempDeck = JSON.parse(JSON.stringify(pageCards));
         if (shuffleMode) tempDeck.sort(() => Math.random() - 0.5);
         returnAfterPlayTarget = "search";
+        sessionShowAutoControls = true;
         document.getElementById("searchPage").style.display = "none";
         document.getElementById("list").style.display = "block";
         startSessionWithCards(tempDeck);
@@ -1488,6 +1493,7 @@
         let tempDeck = JSON.parse(JSON.stringify(folders[current].cards));
         if (shuffleMode) tempDeck.sort(() => Math.random() - 0.5);
         returnAfterPlayTarget = "home";
+        sessionShowAutoControls = false;
         hideAllPages(); document.getElementById("list").style.display = "block";
         startSessionWithCards(tempDeck);
     }
@@ -1501,6 +1507,7 @@
     }
 
     function startSessionWithCards(customDeck) {
+        stopAutoPlay();
         playing = true; currentIdx = 0; sessionCards = customDeck; showCustomCard();
     }
 
@@ -1541,6 +1548,37 @@
         localStorage.setItem("ttsLangBack", val);
     }
 
+    function syncTtsLangFromPlayUI() {
+        let frontSel = document.getElementById("ttsLangFrontSelect");
+        let backSel = document.getElementById("ttsLangBackSelect");
+        if (frontSel) ttsLangFront = frontSel.value;
+        if (backSel) ttsLangBack = backSel.value;
+    }
+
+    function delayMs(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function speakTextAsync(text, langKey) {
+        return new Promise((resolve) => {
+            if (!window.speechSynthesis) { resolve(); return; }
+            let t = String(text || "").trim();
+            if (!t) { resolve(); return; }
+            stopSpeech();
+            let done = false;
+            const finish = () => { if (!done) { done = true; resolve(); } };
+            let utter = new SpeechSynthesisUtterance(t);
+            utter.lang = getTtsLocale(langKey, t);
+            utter.rate = 0.95;
+            let voice = pickVoiceForLocale(utter.lang);
+            if (voice) utter.voice = voice;
+            utter.onend = finish;
+            utter.onerror = finish;
+            setTimeout(finish, Math.max(4000, t.length * 150));
+            speechSynthesis.speak(utter);
+        });
+    }
+
     function speakCurrentCardText() {
         if (!window.speechSynthesis) {
             alert("เบราว์เซอร์นี้ไม่รองรับการอ่านออกเสียงครับ");
@@ -1548,21 +1586,131 @@
         }
         let c = sessionCards[currentIdx];
         if (!c) return;
+        syncTtsLangFromPlayUI();
         let text = isShowingAnswer ? (c.back || "") : (c.front || "");
-        if (!String(text).trim()) return;
-
-        stopSpeech();
-        let frontSel = document.getElementById("ttsLangFrontSelect");
-        let backSel = document.getElementById("ttsLangBackSelect");
-        if (frontSel) ttsLangFront = frontSel.value;
-        if (backSel) ttsLangBack = backSel.value;
         let langKey = isShowingAnswer ? ttsLangBack : ttsLangFront;
-        let utter = new SpeechSynthesisUtterance(String(text).trim());
-        utter.lang = getTtsLocale(langKey, text);
-        utter.rate = 0.95;
-        let voice = pickVoiceForLocale(utter.lang);
-        if (voice) utter.voice = voice;
-        speechSynthesis.speak(utter);
+        speakTextAsync(text, langKey);
+    }
+
+    function updateAutoPlayButtons() {
+        let playBtn = document.getElementById("autoPlayBtn");
+        let loopBtn = document.getElementById("autoLoopBtn");
+        if (playBtn) {
+            playBtn.innerText = autoPlayRunning ? "⏹️ หยุด" : "▶️ Play";
+            playBtn.style.background = autoPlayRunning ? "#ef4444" : "#22c55e";
+            playBtn.style.color = "white";
+        }
+        if (loopBtn) {
+            loopBtn.innerText = autoPlayLoop ? "🔁 วนซ้ำ: เปิด" : "🔁 วนซ้ำ: ปิด";
+            loopBtn.style.background = autoPlayLoop ? "#6366f1" : "#e2e8f0";
+            loopBtn.style.color = autoPlayLoop ? "white" : "#475569";
+        }
+    }
+
+    function stopAutoPlay() {
+        autoPlayRunning = false;
+        stopSpeech();
+        updateAutoPlayButtons();
+    }
+
+    function toggleAutoPlayLoop() {
+        autoPlayLoop = !autoPlayLoop;
+        localStorage.setItem("autoPlayLoop", autoPlayLoop ? "true" : "false");
+        updateAutoPlayButtons();
+    }
+
+    function toggleAutoPlay() {
+        if (autoPlayRunning) {
+            stopAutoPlay();
+            return;
+        }
+        if (!window.speechSynthesis) {
+            alert("เบราว์เซอร์นี้ไม่รองรับการอ่านออกเสียงอัตโนมัติครับ");
+            return;
+        }
+        startAutoPlaySequence();
+    }
+
+    function revealAnswerVisual() {
+        if (isShowingAnswer) return;
+        let cardDiv = document.getElementById("flashcardDisplay");
+        let cardText = document.getElementById("flashcardText");
+        let revealBtn = document.getElementById("revealBtn");
+        let c = sessionCards[currentIdx];
+        if (!cardText || !c) return;
+        cardText.innerHTML = `<span style="color:#6366f1;">${c.back}</span>`;
+        if (cardDiv) cardDiv.style.background = "#f5f7ff";
+        if (revealBtn) revealBtn.innerText = "🔄 ดูคำศัพท์ใหม่";
+        isShowingAnswer = true;
+    }
+
+    function showFrontVisual() {
+        if (!isShowingAnswer) return;
+        let cardDiv = document.getElementById("flashcardDisplay");
+        let cardText = document.getElementById("flashcardText");
+        let revealBtn = document.getElementById("revealBtn");
+        let c = sessionCards[currentIdx];
+        if (!cardText || !c) return;
+        cardText.textContent = c.front;
+        if (cardDiv) cardDiv.style.background = "white";
+        if (revealBtn) revealBtn.innerText = "👁️ ดูเฉลย";
+        isShowingAnswer = false;
+    }
+
+    async function autoPlayOneCard() {
+        if (!autoPlayRunning) return;
+        let c = sessionCards[currentIdx];
+        if (!c) return;
+        syncTtsLangFromPlayUI();
+
+        if (isShowingAnswer) showFrontVisual();
+
+        await speakTextAsync(c.front, ttsLangFront);
+        if (!autoPlayRunning) return;
+        await delayMs(1000);
+        if (!autoPlayRunning) return;
+
+        revealAnswerVisual();
+        await speakTextAsync(c.back, ttsLangBack);
+        if (!autoPlayRunning) return;
+        await delayMs(500);
+        if (!autoPlayRunning) return;
+
+        applyTagAutomation(c, true);
+        currentIdx++;
+        save();
+
+        if (currentIdx < sessionCards.length) {
+            isShowingAnswer = false;
+            showCustomCard();
+        }
+    }
+
+    async function startAutoPlaySequence() {
+        autoPlayRunning = true;
+        updateAutoPlayButtons();
+        try {
+            while (autoPlayRunning) {
+                if (currentIdx >= sessionCards.length) {
+                    if (autoPlayLoop) {
+                        currentIdx = 0;
+                        isShowingAnswer = false;
+                        showCustomCard();
+                        updateAutoPlayButtons();
+                    } else {
+                        break;
+                    }
+                }
+                await autoPlayOneCard();
+            }
+        } finally {
+            let finished = currentIdx >= sessionCards.length;
+            stopAutoPlay();
+            if (finished && !autoPlayLoop) {
+                alert("เย้! เรียนจบชุดแล้วครับ");
+                finishPlaySession();
+            }
+        }
     }
 
     if (window.speechSynthesis) {
@@ -1749,6 +1897,11 @@
             return `<span style="background:${tObj ? tObj.color : '#eee'}; color:white; padding:2px 8px; border-radius:10px; font-size:12px; margin-right:5px;">${tn}</span>`;
         }).join("");
         let progressPercent = ((currentIdx + 1) / sessionCards.length) * 100;
+        let autoControlsHtml = sessionShowAutoControls ? `
+                <div style="display:flex; gap:10px; margin-bottom:12px; justify-content:center; flex-wrap:wrap;">
+                    <button type="button" id="autoPlayBtn" onclick="toggleAutoPlay()" style="flex:1; min-width:120px; max-width:200px; padding:12px 16px; border:none; border-radius:12px; font-weight:bold; font-size:16px; cursor:pointer; background:#22c55e; color:white;">▶️ Play</button>
+                    <button type="button" id="autoLoopBtn" onclick="toggleAutoPlayLoop()" style="flex:1; min-width:120px; max-width:200px; padding:12px 16px; border:none; border-radius:12px; font-weight:bold; font-size:14px; cursor:pointer;">🔁 วนซ้ำ: ปิด</button>
+                </div>` : "";
 
         let html = `
             <div style="text-align:center; padding:10px; max-width:500px; margin:auto;">
@@ -1803,6 +1956,8 @@
                     <div id="flashcardText" style="text-align:center; word-break:break-word; width:100%;">${c.front}</div>
                 </div>
 
+                ${autoControlsHtml}
+
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
                     <button id="revealBtn" onclick="toggleAnswer()" style="grid-column: span 2; background:#6366f1; color:white; padding:15px; border-radius:12px; border:none; font-weight:bold; font-size:18px; cursor:pointer;">👁️ ดูเฉลย</button>
                     <button onclick="prevCard()" style="background:#f1f5f9; color:#64748b; padding:12px; border-radius:12px; border:none; font-weight:bold; cursor:pointer;" ${currentIdx === 0 ? 'disabled' : ''}>⬅️ ย้อนกลับ</button>
@@ -1813,9 +1968,11 @@
             </div>
         `;
         document.getElementById("list").innerHTML = html;
+        updateAutoPlayButtons();
     }
 
     function toggleAnswer() {
+        if (autoPlayRunning) stopAutoPlay();
         let cardDiv = document.getElementById("flashcardDisplay");
         let cardText = document.getElementById("flashcardText");
         let revealBtn = document.getElementById("revealBtn");
@@ -1823,25 +1980,26 @@
         if (!cardText || !cardDiv) return;
         stopSpeech();
         if (!isShowingAnswer) {
-            cardText.innerHTML = `<span style="color:#6366f1;">${c.back}</span>`;
-            cardDiv.style.background = "#f5f7ff";
-            revealBtn.innerText = "🔄 ดูคำศัพท์ใหม่";
-            isShowingAnswer = true;
+            revealAnswerVisual();
         } else {
-            cardText.textContent = c.front;
-            cardDiv.style.background = "white";
-            revealBtn.innerText = "👁️ ดูเฉลย";
-            isShowingAnswer = false;
+            showFrontVisual();
         }
     }
 
-    function prevCard() { if (currentIdx > 0) { currentIdx--; showCustomCard(); } }
+    function prevCard() {
+        if (autoPlayRunning) stopAutoPlay();
+        if (currentIdx > 0) { currentIdx--; showCustomCard(); }
+    }
     function skipCard() {
+        if (autoPlayRunning) stopAutoPlay();
         if (sessionCards.length <= 1) return;
         let c = sessionCards.splice(currentIdx, 1)[0]; sessionCards.push(c);
         if (currentIdx >= sessionCards.length) currentIdx = 0; showCustomCard();
     }
-    function nextCard() { applyTagAutomation(sessionCards[currentIdx], true); currentIdx++; save(); showCustomCard(); }
+    function nextCard() {
+        if (autoPlayRunning) stopAutoPlay();
+        applyTagAutomation(sessionCards[currentIdx], true); currentIdx++; save(); showCustomCard();
+    }
 
     function showTagEditorInPlay() {
         let area = document.getElementById("tagEditorArea"); area.style.display = area.style.display === "none" ? "block" : "none";
@@ -2124,6 +2282,7 @@
         let tempDeck = JSON.parse(JSON.stringify(deck));
         if (shuffleMode) tempDeck.sort(() => Math.random() - 0.5);
         returnAfterPlayTarget = "home";
+        sessionShowAutoControls = false;
         hideAllPages();
         document.getElementById("list").style.display = "block";
         startSessionWithCards(tempDeck);
