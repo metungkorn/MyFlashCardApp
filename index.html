@@ -634,6 +634,9 @@
     let playing = false;
     // หลังจบโหมดเรียน: "home" | "search"
     let returnAfterPlayTarget = "home";
+    // ภาษาอ่านออกเสียง (TTS): front = auto|th|en|ja, back = th|en|ja
+    let ttsLangFront = localStorage.getItem("ttsLangFront") || "auto";
+    let ttsLangBack = localStorage.getItem("ttsLangBack") || "th";
 
     let itemsPerSubDeck = 20; 
     let currentSubDeckPage = 0; 
@@ -1435,9 +1438,75 @@
         playing = true; currentIdx = 0; sessionCards = customDeck; showCustomCard();
     }
 
+    function stopSpeech() {
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+    }
+
+    function detectLangFromText(text) {
+        if (!text) return "en-US";
+        if (/[\u0E00-\u0E7F]/.test(text)) return "th-TH";
+        if (/[\u3040-\u30FF\u4E00-\u9FFF]/.test(text)) return "ja-JP";
+        return "en-US";
+    }
+
+    function getTtsLocale(langKey, text) {
+        const map = { th: "th-TH", en: "en-US", ja: "ja-JP" };
+        if (langKey === "auto") return detectLangFromText(text);
+        return map[langKey] || "en-US";
+    }
+
+    function pickVoiceForLocale(locale) {
+        if (!window.speechSynthesis) return null;
+        let voices = speechSynthesis.getVoices();
+        if (!voices.length) return null;
+        let exact = voices.find(v => v.lang === locale);
+        if (exact) return exact;
+        let prefix = locale.split("-")[0];
+        return voices.find(v => v.lang && v.lang.startsWith(prefix)) || null;
+    }
+
+    function onTtsLangFrontChange(val) {
+        ttsLangFront = val;
+        localStorage.setItem("ttsLangFront", val);
+    }
+
+    function onTtsLangBackChange(val) {
+        ttsLangBack = val;
+        localStorage.setItem("ttsLangBack", val);
+    }
+
+    function speakCurrentCardText() {
+        if (!window.speechSynthesis) {
+            alert("เบราว์เซอร์นี้ไม่รองรับการอ่านออกเสียงครับ");
+            return;
+        }
+        let c = sessionCards[currentIdx];
+        if (!c) return;
+        let text = isShowingAnswer ? (c.back || "") : (c.front || "");
+        if (!String(text).trim()) return;
+
+        stopSpeech();
+        let frontSel = document.getElementById("ttsLangFrontSelect");
+        let backSel = document.getElementById("ttsLangBackSelect");
+        if (frontSel) ttsLangFront = frontSel.value;
+        if (backSel) ttsLangBack = backSel.value;
+        let langKey = isShowingAnswer ? ttsLangBack : ttsLangFront;
+        let utter = new SpeechSynthesisUtterance(String(text).trim());
+        utter.lang = getTtsLocale(langKey, text);
+        utter.rate = 0.95;
+        let voice = pickVoiceForLocale(utter.lang);
+        if (voice) utter.voice = voice;
+        speechSynthesis.speak(utter);
+    }
+
+    if (window.speechSynthesis) {
+        speechSynthesis.onvoiceschanged = () => { /* โหลดเสียงเมื่อพร้อม */ };
+    }
+
     function showCustomCard() {
         if (currentIdx >= sessionCards.length) { alert("เย้! เรียนจบชุดแล้วครับ"); finishPlaySession(); return; }
 
+        stopSpeech();
         let c = sessionCards[currentIdx]; isShowingAnswer = false;
         let currentTagHTML = (c.tag || []).map(tn => {
             let tObj = tags.find(tg => tg.name === tn);
@@ -1470,8 +1539,32 @@
                     </div>
                 </div>
 
-                <div id="flashcardDisplay" style="font-size:32px; font-weight:bold; min-height:180px; display:flex; align-items:center; justify-content:center; background:white; border-radius:25px; box-shadow:0 10px 30px rgba(0,0,0,0.1); margin-bottom:25px; padding:20px;">
-                    ${c.front}
+                <div style="background:#f8fafc; padding:10px 12px; border-radius:12px; margin-bottom:10px; font-size:12px; color:#475569;">
+                    <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:center;">
+                        <span style="font-weight:bold;">🔊 ภาษาเสียง</span>
+                        <label style="display:flex; align-items:center; gap:4px;">
+                            หน้า:
+                            <select id="ttsLangFrontSelect" onchange="onTtsLangFrontChange(this.value)" style="padding:4px 8px; border-radius:6px; border:1px solid #cbd5e1;">
+                                <option value="auto" ${ttsLangFront === "auto" ? "selected" : ""}>อัตโนมัติ (ตามข้อความ)</option>
+                                <option value="th" ${ttsLangFront === "th" ? "selected" : ""}>ไทย</option>
+                                <option value="en" ${ttsLangFront === "en" ? "selected" : ""}>English</option>
+                                <option value="ja" ${ttsLangFront === "ja" ? "selected" : ""}>日本語</option>
+                            </select>
+                        </label>
+                        <label style="display:flex; align-items:center; gap:4px;">
+                            หลัง (คำแปล):
+                            <select id="ttsLangBackSelect" onchange="onTtsLangBackChange(this.value)" style="padding:4px 8px; border-radius:6px; border:1px solid #cbd5e1;">
+                                <option value="th" ${ttsLangBack === "th" ? "selected" : ""}>ไทย</option>
+                                <option value="en" ${ttsLangBack === "en" ? "selected" : ""}>English</option>
+                                <option value="ja" ${ttsLangBack === "ja" ? "selected" : ""}>日本語</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="flashcardDisplay" style="position:relative; font-size:32px; font-weight:bold; min-height:180px; display:flex; align-items:center; justify-content:center; background:white; border-radius:25px; box-shadow:0 10px 30px rgba(0,0,0,0.1); margin-bottom:25px; padding:20px 50px 20px 20px;">
+                    <button type="button" onclick="speakCurrentCardText()" title="อ่านออกเสียง" style="position:absolute; top:12px; right:12px; width:44px; height:44px; border:none; border-radius:50%; background:#eef2ff; color:#6366f1; font-size:22px; cursor:pointer; box-shadow:0 2px 8px rgba(99,102,241,0.25); z-index:2;">🔊</button>
+                    <div id="flashcardText" style="text-align:center; word-break:break-word; width:100%;">${c.front}</div>
                 </div>
 
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
@@ -1488,12 +1581,21 @@
 
     function toggleAnswer() {
         let cardDiv = document.getElementById("flashcardDisplay");
+        let cardText = document.getElementById("flashcardText");
         let revealBtn = document.getElementById("revealBtn");
         let c = sessionCards[currentIdx];
+        if (!cardText || !cardDiv) return;
+        stopSpeech();
         if (!isShowingAnswer) {
-            cardDiv.innerHTML = `<span style="color:#6366f1;">${c.back}</span>`; cardDiv.style.background = "#f5f7ff"; revealBtn.innerText = "🔄 ดูคำศัพท์ใหม่"; isShowingAnswer = true;
+            cardText.innerHTML = `<span style="color:#6366f1;">${c.back}</span>`;
+            cardDiv.style.background = "#f5f7ff";
+            revealBtn.innerText = "🔄 ดูคำศัพท์ใหม่";
+            isShowingAnswer = true;
         } else {
-            cardDiv.innerHTML = c.front; cardDiv.style.background = "white"; revealBtn.innerText = "👁️ ดูเฉลย"; isShowingAnswer = false;
+            cardText.textContent = c.front;
+            cardDiv.style.background = "white";
+            revealBtn.innerText = "👁️ ดูเฉลย";
+            isShowingAnswer = false;
         }
     }
 
