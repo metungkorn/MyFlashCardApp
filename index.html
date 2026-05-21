@@ -78,6 +78,7 @@
             <div class="menuItem" onclick="openSearchPage()">🔍 ค้นหาขั้นสูง</div>
             <div class="menuItem" onclick="openCalendar()">📅 ปฏิทิน</div>
             <div class="menuItem" onclick="openTagManager()">🏷️ จัดการแท็ก</div>
+            <div class="menuItem" onclick="openDownloadAudioPage()">🔊 ดาวน์โหลดเสียง</div>
         </div>
 
         <div id="homePage">
@@ -244,6 +245,47 @@
             <p style="color:#64748b; font-size:13px; margin-bottom:15px;">กำหนดการเปลี่ยนแท็กอัตโนมัติเมื่อทบทวนเสร็จ หรือเมื่อลืมทบทวน</p>
             <div id="tagEditorList"></div>
             <button onclick="goToHome()" style="margin-top:20px; width:100%; background:#64748b; color:white; padding:12px; border-radius:10px; border:none; cursor:pointer; font-weight:bold;">⬅️ ปิดหน้าจัดการแท็ก</button>
+        </div>
+
+        <div id="downloadAudioPage" style="display:none; padding-bottom:80px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 style="color:#1e293b; margin:0;">🔊 ดาวน์โหลดเสียง</h2>
+                <button onclick="goToHome()" style="background:#64748b; color:white; padding:8px 15px; border-radius:8px; border:none;">❌ ปิด</button>
+            </div>
+            <p style="color:#64748b; font-size:13px; margin-bottom:15px;">
+                สร้างไฟล์เสียงจากการ์ดในโฟลเดอร์: อ่าน <b>หน้า</b> → หยุด 1 วินาที → อ่าน <b>หลัง</b> → ใบถัดไป (เหมาะกับ shadowing)
+            </p>
+            <div style="background:white; padding:20px; border-radius:15px; box-shadow:0 4px 12px rgba(0,0,0,0.05); margin-bottom:20px;">
+                <label style="font-size:13px; font-weight:bold; color:#475569; display:block; margin-bottom:8px;">📂 เลือกโฟลเดอร์</label>
+                <select id="dlAudioFolderSelect" style="width:100%; padding:12px; border-radius:8px; border:1px solid #cbd5e1; margin-bottom:15px;"></select>
+
+                <label style="font-size:13px; font-weight:bold; color:#475569; display:block; margin-bottom:8px;">🔊 ตั้งภาษาเสียง (เหมือนตอนเรียน)</label>
+                <div style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:15px;">
+                    <label style="font-size:12px; display:flex; align-items:center; gap:6px;">
+                        หน้า:
+                        <select id="dlTtsLangFrontSelect" onchange="onTtsLangFrontChange(this.value)" style="padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
+                            <option value="auto">อัตโนมัติ (ตามข้อความ)</option>
+                            <option value="th">ไทย</option>
+                            <option value="en">English</option>
+                            <option value="ja">日本語</option>
+                        </select>
+                    </label>
+                    <label style="font-size:12px; display:flex; align-items:center; gap:6px;">
+                        หลัง:
+                        <select id="dlTtsLangBackSelect" onchange="onTtsLangBackChange(this.value)" style="padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
+                            <option value="th">ไทย</option>
+                            <option value="en">English</option>
+                            <option value="ja">日本語</option>
+                        </select>
+                    </label>
+                </div>
+
+                <button id="dlAudioGenerateBtn" onclick="generateFolderAudioDownload()" style="width:100%; padding:14px; background:#6366f1; color:white; border:none; border-radius:12px; font-weight:bold; font-size:16px; cursor:pointer; box-shadow:0 4px 10px rgba(99,102,241,0.3);">
+                    ⬇️ สร้างและดาวน์โหลดไฟล์เสียง (.wav)
+                </button>
+                <p style="font-size:11px; color:#94a3b8; margin-top:10px; margin-bottom:0;">ต้องเชื่อมอินเทอร์เน็ตขณะสร้างไฟล์ · โฟลเดอร์ใหญ่อาจใช้เวลาสักครู่</p>
+                <div id="dlAudioProgress" style="margin-top:12px; font-size:13px; color:#475569; min-height:20px;"></div>
+            </div>
         </div>
 
         <div id="calendarPage" style="display:none; padding-bottom:50px;">
@@ -688,6 +730,7 @@
         document.getElementById("calendarPage").style.display = "none";
         document.getElementById("searchPage").style.display = "none";
         document.getElementById("tagManagerPage").style.display = "none";
+        document.getElementById("downloadAudioPage").style.display = "none";
         document.getElementById("list").style.display = "none";
     }
 
@@ -750,6 +793,29 @@
         hideAllPages();
         document.getElementById("tagManagerPage").style.display = "block";
         renderTagManagerList();
+    }
+
+    function openDownloadAudioPage() {
+        if (sidebarOpen) toggleSidebar();
+        hideAllPages();
+        document.getElementById("downloadAudioPage").style.display = "block";
+        renderDownloadAudioPage();
+    }
+
+    function renderDownloadAudioPage() {
+        let sel = document.getElementById("dlAudioFolderSelect");
+        if (!sel) return;
+        if (folders.length === 0) {
+            sel.innerHTML = `<option value="">-- ยังไม่มีโฟลเดอร์ --</option>`;
+        } else {
+            sel.innerHTML = folders.map(f => `<option value="${f.name}">${f.name} (${f.cards.length} ใบ)</option>`).join("");
+        }
+        let frontSel = document.getElementById("dlTtsLangFrontSelect");
+        let backSel = document.getElementById("dlTtsLangBackSelect");
+        if (frontSel) frontSel.value = ttsLangFront;
+        if (backSel) backSel.value = ttsLangBack;
+        let prog = document.getElementById("dlAudioProgress");
+        if (prog) prog.innerHTML = "";
     }
 
     // 3. FOLDERS & CARDS CREATION
@@ -1501,6 +1567,176 @@
 
     if (window.speechSynthesis) {
         speechSynthesis.onvoiceschanged = () => { /* โหลดเสียงเมื่อพร้อม */ };
+    }
+
+    let dlAudioGenerating = false;
+
+    function resolveTtsApiLangCode(langKey, text) {
+        if (langKey === "auto") {
+            let loc = detectLangFromText(text);
+            if (loc === "th-TH") return "th";
+            if (loc === "ja-JP") return "ja";
+            return "en";
+        }
+        return langKey;
+    }
+
+    function createSilenceBuffer(ctx, seconds) {
+        let len = Math.max(1, Math.floor(ctx.sampleRate * seconds));
+        return ctx.createBuffer(1, len, ctx.sampleRate);
+    }
+
+    async function resampleToContext(ctx, buffer) {
+        if (!buffer) return createSilenceBuffer(ctx, 0.01);
+        if (buffer.sampleRate === ctx.sampleRate && buffer.numberOfChannels === 1) return buffer;
+        let offline = new OfflineAudioContext(1, Math.ceil(buffer.duration * ctx.sampleRate) || 1, ctx.sampleRate);
+        let src = offline.createBufferSource();
+        src.buffer = buffer;
+        src.connect(offline.destination);
+        src.start(0);
+        return await offline.startRendering();
+    }
+
+    function bufferToMono(buffer) {
+        if (buffer.numberOfChannels === 1) return buffer.getChannelData(0);
+        let ch0 = buffer.getChannelData(0);
+        let ch1 = buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : ch0;
+        let mono = new Float32Array(buffer.length);
+        for (let i = 0; i < buffer.length; i++) mono[i] = (ch0[i] + ch1[i]) / 2;
+        return mono;
+    }
+
+    function concatMonoBuffers(ctx, buffers) {
+        let valid = buffers.filter(b => b && b.length > 0);
+        if (!valid.length) throw new Error("ไม่มีข้อมูลเสียงให้รวม");
+        let total = valid.reduce((s, b) => s + b.length, 0);
+        let out = ctx.createBuffer(1, total, ctx.sampleRate);
+        let ch = out.getChannelData(0);
+        let off = 0;
+        for (let buf of valid) {
+            let mono = bufferToMono(buf);
+            ch.set(mono, off);
+            off += mono.length;
+        }
+        return out;
+    }
+
+    async function fetchTtsAudioBuffer(ctx, text, langCode) {
+        let t = String(text || "").trim();
+        if (!t) return createSilenceBuffer(ctx, 0.05);
+        const maxLen = 180;
+        let pieces = [];
+        for (let i = 0; i < t.length; i += maxLen) pieces.push(t.slice(i, i + maxLen));
+        let decoded = [];
+        for (let piece of pieces) {
+            let url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${langCode}&q=${encodeURIComponent(piece)}`;
+            let res = await fetch(url);
+            if (!res.ok) throw new Error("โหลดเสียงไม่สำเร็จ (เครือข่ายหรือ CORS)");
+            let ab = await res.arrayBuffer();
+            decoded.push(await ctx.decodeAudioData(ab.slice(0)));
+        }
+        let merged = await resampleToContext(ctx, concatMonoBuffers(ctx, decoded));
+        return merged;
+    }
+
+    function audioBufferToWav(buffer) {
+        let numCh = 1;
+        let sampleRate = buffer.sampleRate;
+        let chData = buffer.getChannelData(0);
+        let samples = chData.length;
+        let bitDepth = 16;
+        let blockAlign = numCh * bitDepth / 8;
+        let byteRate = sampleRate * blockAlign;
+        let dataSize = samples * blockAlign;
+        let ab = new ArrayBuffer(44 + dataSize);
+        let view = new DataView(ab);
+        function ws(offset, str) { for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i)); }
+        ws(0, "RIFF"); view.setUint32(4, 36 + dataSize, true);
+        ws(8, "WAVE"); ws(12, "fmt ");
+        view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+        view.setUint16(22, numCh, true); view.setUint32(24, sampleRate, true);
+        view.setUint32(28, byteRate, true); view.setUint16(32, blockAlign, true);
+        view.setUint16(34, bitDepth, true);
+        ws(36, "data"); view.setUint32(40, dataSize, true);
+        let o = 44;
+        for (let i = 0; i < samples; i++) {
+            let s = Math.max(-1, Math.min(1, chData[i]));
+            view.setInt16(o, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+            o += 2;
+        }
+        return new Blob([ab], { type: "audio/wav" });
+    }
+
+    function downloadAudioBlob(blob, filename) {
+        let url = URL.createObjectURL(blob);
+        let a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    async function generateFolderAudioDownload() {
+        if (dlAudioGenerating) return;
+        let folderName = document.getElementById("dlAudioFolderSelect")?.value;
+        if (!folderName) return alert("กรุณาเลือกโฟลเดอร์ครับ");
+        let folder = folders.find(f => f.name === folderName);
+        if (!folder || !folder.cards.length) return alert("โฟลเดอร์นี้ไม่มีการ์ดครับ");
+
+        let frontLang = document.getElementById("dlTtsLangFrontSelect")?.value || ttsLangFront;
+        let backLang = document.getElementById("dlTtsLangBackSelect")?.value || ttsLangBack;
+        onTtsLangFrontChange(frontLang);
+        onTtsLangBackChange(backLang);
+
+        if (!confirm(`สร้างไฟล์เสียงจากโฟลเดอร์ "${folderName}" จำนวน ${folder.cards.length} ใบ?\n(หน้า → หยุด 1 วินาที → หลัง)`)) return;
+
+        let btn = document.getElementById("dlAudioGenerateBtn");
+        let prog = document.getElementById("dlAudioProgress");
+        dlAudioGenerating = true;
+        if (btn) btn.disabled = true;
+        stopSpeech();
+
+        try {
+            let ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
+            let segments = [];
+            let silence1s = createSilenceBuffer(ctx, 1);
+
+            for (let i = 0; i < folder.cards.length; i++) {
+                let card = folder.cards[i];
+                if (prog) prog.innerHTML = `⏳ กำลังสร้างเสียง... ใบที่ ${i + 1} / ${folder.cards.length}`;
+                await new Promise(r => setTimeout(r, 0));
+
+                let front = String(card.front || "").trim();
+                let back = String(card.back || "").trim();
+
+                if (front) {
+                    let fl = resolveTtsApiLangCode(frontLang, front);
+                    segments.push(await fetchTtsAudioBuffer(ctx, front, fl));
+                }
+                segments.push(silence1s);
+                if (back) {
+                    let bl = resolveTtsApiLangCode(backLang, back);
+                    segments.push(await fetchTtsAudioBuffer(ctx, back, bl));
+                }
+            }
+
+            if (prog) prog.innerHTML = "⏳ กำลังรวมไฟล์เสียง...";
+            let finalBuf = concatMonoBuffers(ctx, segments);
+            let wavBlob = audioBufferToWav(finalBuf);
+            let safeName = folderName.replace(/[\\/:*?"<>|]/g, "_");
+            downloadAudioBlob(wavBlob, `${safeName}_shadowing.wav`);
+            if (prog) prog.innerHTML = `✅ ดาวน์โหลดสำเร็จ! (${folder.cards.length} ใบ)`;
+            alert(`✅ สร้างไฟล์เสียงสำเร็จ!\nโฟลเดอร์: ${folderName}\nจำนวน: ${folder.cards.length} ใบ`);
+        } catch (err) {
+            console.error(err);
+            if (prog) prog.innerHTML = "❌ สร้างไฟล์ไม่สำเร็จ";
+            alert("สร้างไฟล์เสียงไม่สำเร็จครับ\n\n" + (err.message || err) + "\n\nลอง:\n- เปิดเว็บผ่าน https (ไม่ใช่ไฟล์ offline)\n- ตรวจสอบอินเทอร์เน็ต\n- ลองโฟลเดอร์ที่มีการ์ดน้อยลง");
+        } finally {
+            dlAudioGenerating = false;
+            if (btn) btn.disabled = false;
+        }
     }
 
     function showCustomCard() {
