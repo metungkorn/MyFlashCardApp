@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flashcard (V.6) - Cloud Synced & Upgraded</title>
     <style>
-        /* --- CSS ???? --- */
+        /* --- CSS หลัก --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f8; padding: 20px; color: #333; line-height: 1.6; }
         #app-container { max-width: 900px; margin: 0 auto; position: relative; }
         
@@ -36,15 +36,6 @@
         #calendarGrid{ display:grid; grid-template-columns: repeat(7, 1fr); gap:6px; margin-top:10px; }
         .dayCell{ background:white; padding:12px; border-radius:10px; box-shadow:0 3px 8px rgba(0,0,0,0.08); min-height:60px; font-size:14px; }
         .dayHeader{ font-weight:bold; text-align:center; color:#64748b; }
-
-        .fc-mark-content { width: 100%; }
-        .fc-mark-text { margin: 10px 0; line-height: 1.5; }
-        .fc-mark-table { width: 100%; border-collapse: collapse; margin: 12px auto; font-size: 15px; font-weight: normal; text-align: left; }
-        .fc-mark-table th, .fc-mark-table td { border: 1px solid #cbd5e1; padding: 8px 10px; vertical-align: top; word-break: break-word; }
-        .fc-mark-table th { background: #eef2ff; color: #4338ca; font-weight: bold; }
-        .fc-mark-table tr:nth-child(even) td { background: #f8fafc; }
-        #flashcardDisplay .fc-mark-table { font-size: 16px; }
-        #flashcardDisplay .fc-mark-text { font-size: 22px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -60,125 +51,125 @@
 
     <div id="auth-controls" style="position: fixed; top: 12px; right: 15px; z-index: 1001; display: flex; align-items: center; gap: 10px;">
         <span id="userInfo" style="font-size: 14px; font-weight: bold; color: #6366f1; background: white; padding: 5px 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: none;"></span>
-        <button id="logoutBtn" onclick="logout()" style="background: #ea4335; color: white; margin: 0; padding: 8px 15px; display: none;">?? ??????????</button>
+        <button id="logoutBtn" onclick="logout()" style="background: #ea4335; color: white; margin: 0; padding: 8px 15px; display: none;">🚪 ออกจากระบบ</button>
     </div>
 
     <div id="loadingScreen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh; text-align: center;">
-        <div style="font-size: 50px; margin-bottom: 10px;">?</div>
-        <h2 style="color: #64748b;">??????????????????...</h2>
+        <div style="font-size: 50px; margin-bottom: 10px;">⏳</div>
+        <h2 style="color: #64748b;">กำลังเชื่อมต่อระบบ...</h2>
     </div>
 
     <div id="loginPrompt" style="display: none; flex-direction: column; align-items: center; justify-content: center; height: 80vh; text-align: center;">
-        <div style="font-size: 80px; margin-bottom: 10px;">??</div>
+        <div style="font-size: 80px; margin-bottom: 10px;">🔒</div>
         <h1 style="color: #1e293b; margin-bottom: 5px;">Flashcard (Ultimate)</h1>
-        <p style="color: #64748b; font-size: 16px; margin-bottom: 30px;">????????????????????????????????? Google ???????????????</p>
+        <p style="color: #64748b; font-size: 16px; margin-bottom: 30px;">คุณจำเป็นต้องเข้าสู่ระบบผ่านบัญชี Google ก่อนเริ่มใช้งาน</p>
         <button onclick="login()" style="background: #4285F4; color: white; padding: 15px 35px; font-size: 18px; border-radius: 12px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(66, 133, 244, 0.4); transition: 0.3s;">
-            ?? ??????????????? Google
+            🔑 เข้าสู่ระบบด้วย Google
         </button>
     </div>
 
     <div id="main-app-content" style="display: none;">
         
-        <div id="menuBtn" onclick="toggleSidebar()">?</div>
+        <div id="menuBtn" onclick="toggleSidebar()">☰</div>
         <div id="overlay" onclick="toggleSidebar()"></div>
         <div id="sidebar">
-            <h3 style="padding-left:20px; color:#6366f1;">?? Flashcard Menu</h3>
-            <div class="menuItem" onclick="goToHome()">?? ???????</div>
-            <div class="menuItem" onclick="openSearchPage()">?? ????????????</div>
-            <div class="menuItem" onclick="openCalendar()">?? ??????</div>
-            <div class="menuItem" onclick="openTagManager()">??? ??????????</div>
-            <div class="menuItem" onclick="openDownloadAudioPage()">?? ??????????????</div>
+            <h3 style="padding-left:20px; color:#6366f1;">📚 Flashcard Menu</h3>
+            <div class="menuItem" onclick="goToHome()">🏠 หน้าแรก</div>
+            <div class="menuItem" onclick="openSearchPage()">🔍 ค้นหาขั้นสูง</div>
+            <div class="menuItem" onclick="openCalendar()">📅 ปฏิทิน</div>
+            <div class="menuItem" onclick="openTagManager()">🏷️ จัดการแท็ก</div>
+            <div class="menuItem" onclick="openDownloadAudioPage()">🔊 ดาวน์โหลดเสียง</div>
         </div>
 
         <div id="homePage">
-            <h1>?? Flashcard (Ultimate)</h1>
+            <h1>📚 Flashcard (Ultimate)</h1>
 
             <div style="background:#fff; padding:15px; border-radius:15px; margin-bottom:20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align:center; border: 2px dashed #cbd5e1;">
-                <strong style="font-size: 16px; color:#1e293b;">?? ?????????????????????? (Backup / Restore)</strong>
-                <p style="font-size:12px; color:#64748b; margin-bottom:10px;">????????????????????????? ????????? Cloud ??????? ???????????????????????????</p>
+                <strong style="font-size: 16px; color:#1e293b;">💾 ระบบเซฟและกู้คืนข้อมูล (Backup / Restore)</strong>
+                <p style="font-size:12px; color:#64748b; margin-bottom:10px;">เซฟข้อมูลเก็บไว้ในเครื่อง เผื่อระบบ Cloud มีปัญหา หรือนำไฟล์เซฟกลับมาโหลดใหม่</p>
                 <div style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
-                    <button onclick="openSaveModal()" style="background:#3b82f6; color:white; padding:10px 20px; border-radius:10px; font-weight:bold; box-shadow:0 4px 6px rgba(59,130,246,0.3);">?? ???????????? (Save)</button>
-                    <button onclick="triggerLoadSave()" style="background:#f59e0b; color:white; padding:10px 20px; border-radius:10px; font-weight:bold; box-shadow:0 4px 6px rgba(245,158,11,0.3);">?? ??????????? (Load)</button>
+                    <button onclick="openSaveModal()" style="background:#3b82f6; color:white; padding:10px 20px; border-radius:10px; font-weight:bold; box-shadow:0 4px 6px rgba(59,130,246,0.3);">📥 สร้างไฟล์เซฟ (Save)</button>
+                    <button onclick="triggerLoadSave()" style="background:#f59e0b; color:white; padding:10px 20px; border-radius:10px; font-weight:bold; box-shadow:0 4px 6px rgba(245,158,11,0.3);">📤 โหลดไฟล์เซฟ (Load)</button>
                 </div>
                 <input type="file" id="loadSaveInput" accept=".json" style="display:none;" onchange="handleLoadSave(event)">
             </div>
 
             <div id="saveModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:3000;">
                 <div style="background:white; padding:25px; border-radius:20px; width:90%; max-width:400px; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
-                    <h3 style="margin-top:0; color:#1e293b;">?? ?????????????????????</h3>
-                    <p style="font-size:12px; color:#64748b;">??????????????????????????????????? Download ??????</p>
-                    <input type="text" id="saveFileName" placeholder="???? backup_???????" style="width:100%; padding:12px; box-sizing:border-box; margin-bottom:15px; border-radius:8px; border:1px solid #cbd5e1; font-size:16px;">
+                    <h3 style="margin-top:0; color:#1e293b;">💾 ตั้งชื่อไฟล์เซฟของคุณ</h3>
+                    <p style="font-size:12px; color:#64748b;">ระบบจะทำการโหลดเป็นไฟล์ลงในโฟลเดอร์ Download ของคุณ</p>
+                    <input type="text" id="saveFileName" placeholder="เช่น backup_ก่อนสอบ" style="width:100%; padding:12px; box-sizing:border-box; margin-bottom:15px; border-radius:8px; border:1px solid #cbd5e1; font-size:16px;">
                     <div style="display:flex; gap:10px;">
-                        <button onclick="executeSaveFile()" style="flex-grow:1; background:#10b981; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold; font-size:16px;">? ?????????</button>
-                        <button onclick="closeSaveModal()" style="background:#ef4444; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold; font-size:16px;">? ??????</button>
+                        <button onclick="executeSaveFile()" style="flex-grow:1; background:#10b981; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold; font-size:16px;">✅ ยืนยันเซฟ</button>
+                        <button onclick="closeSaveModal()" style="background:#ef4444; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold; font-size:16px;">❌ ยกเลิก</button>
                     </div>
                 </div>
             </div>
             ```
             
             <section>
-                <h3>?? ????????</h3>
+                <h3>📂 โฟลเดอร์</h3>
                 <div style="display: flex; gap: 5px; flex-wrap: wrap;">
-                    <input id="folderName" placeholder="????????????????" style="flex-grow: 1;">
-                    <button onclick="addFolder()" style="background:#4CAF50; color:white;">?????????????</button>
+                    <input id="folderName" placeholder="ชื่อโฟลเดอร์ใหม่" style="flex-grow: 1;">
+                    <button onclick="addFolder()" style="background:#4CAF50; color:white;">สร้างโฟลเดอร์</button>
                 </div>
                 <div id="folders" style="margin-top: 10px;"></div>
             </section>
 
             <hr>
-            <h3 id="currentFolder" style="color: #6366f1;">???????????????????????????</h3>
+            <h3 id="currentFolder" style="color: #6366f1;">กรุณาเลือกหรือสร้างโฟลเดอร์</h3>
 
             <div style="background:#fff; padding:20px; border-radius:15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-                <strong style="font-size: 18px;">? ??????????????</strong><br><br>
+                <strong style="font-size: 18px;">➕ เพิ่มการ์ดใหม่</strong><br><br>
                 <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                    <input id="front" placeholder="??????? (????????)" style="width:50%">
-                    <input id="back" placeholder="???????? (????????)" style="width:50%">
+                    <input id="front" placeholder="คำศัพท์ (ด้านหน้า)" style="width:50%">
+                    <input id="back" placeholder="ความหมาย (ด้านหลัง)" style="width:50%">
                 </div>
                 <div class="tag-selector-container">
                     <div class="tag-controls">
-                        <strong>???????:</strong>
-                        <button onclick="selectAllTags('multiTagInput')">? ???????</button>
-                        <button onclick="deselectAllTags('multiTagInput')">? ??????</button>
+                        <strong>ติดแท็ก:</strong>
+                        <button onclick="selectAllTags('multiTagInput')">✅ ทั้งหมด</button>
+                        <button onclick="deselectAllTags('multiTagInput')">❌ ยกเลิก</button>
                     </div>
                     <div id="multiTagInput"></div>
                 </div>
-                <button onclick="addCard()" style="background:#2196F3; color:white; width: 100%; padding: 15px; font-size: 16px;">???????????????????? (Cloud)</button>
+                <button onclick="addCard()" style="background:#2196F3; color:white; width: 100%; padding: 15px; font-size: 16px;">เพิ่มการ์ดลงโฟลเดอร์ (Cloud)</button>
             </div>
 
             <div style="background:#eef2ff; padding:20px; border-radius:15px; margin-top: 20px;">
-                <strong>??? ????????????? & ????????????</strong><br>
+                <strong>🏷️ สร้างแท็กใหม่ & ระบบเงื่อนไข</strong><br>
                 <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; align-items: center;">
-                    <input id="tagName" placeholder="????????" style="width: 150px;">
-                    <input id="tagInterval" type="number" placeholder="????????" style="width: 80px;">
+                    <input id="tagName" placeholder="ชื่อแท็ก" style="width: 150px;">
+                    <input id="tagInterval" type="number" placeholder="วันทบทวน" style="width: 80px;">
                     
-                    <button onclick="document.getElementById('tagInterval').value = 0" style="background:#3b82f6; color:white; padding:8px 12px; font-size:13px; margin: 5px 0;">?? ???????????</button>
+                    <button onclick="document.getElementById('tagInterval').value = 0" style="background:#3b82f6; color:white; padding:8px 12px; font-size:13px; margin: 5px 0;">📅 ทบทวนวันนี้</button>
                     
-                    <select id="tagPromote" title="?????????????"></select>
-                    <select id="tagDemote" title="????????"></select>
+                    <select id="tagPromote" title="เมื่อทำสำเร็จ"></select>
+                    <select id="tagDemote" title="เมื่อลืม"></select>
                     <input type="color" id="tagColor" value="#ffe4b5" style="width: 50px; height: 45px; padding: 2px;">
-                    <button onclick="createTag()" style="background:#6366f1; color:white;">? ?????????</button>
+                    <button onclick="createTag()" style="background:#6366f1; color:white;">✨ สร้างแท็ก</button>
                 </div>
                 <div id="tagList" style="margin-top:15px; display: flex; flex-wrap: wrap;"></div>
             </div>
 
             <hr>
             <section>
-                <h3>?? ???????????????? (Bulk Import)</h3>
-                <textarea id="bulk" rows="4" style="width:100%; border-radius:10px;" placeholder="??????? = ???????? (?????????????????????)"></textarea>
+                <h3>📥 นำเข้าแบบรวดเร็ว (Bulk Import)</h3>
+                <textarea id="bulk" rows="4" style="width:100%; border-radius:10px;" placeholder="คำศัพท์ = ความหมาย (หนึ่งบรรทัดต่อหนึ่งใบ)"></textarea>
                 <div style="background: #eee; padding: 15px; border-radius: 15px; margin-top: 10px; text-align: left;">
-                    <span>????????:</span> <select id="sepTerm"><option value="=">=</option><option value="tab">Tab</option><option value="custom">Custom</option></select>
-                    <input id="customSepTerm" placeholder="???????" style="width:70px; display:none;">
-                    <span style="margin-left: 10px;">??????:</span> <select id="sepCard"><option value="newline">??????????</option><option value="custom">Custom</option></select>
-                    <input id="customSepCard" placeholder="???????" style="width:70px; display:none;">
-                    <button onclick="importCards()" style="background:#ff9800; color:white; margin-left: 10px;">?? ???????????</button>
+                    <span>คั่นกลาง:</span> <select id="sepTerm"><option value="=">=</option><option value="tab">Tab</option><option value="custom">Custom</option></select>
+                    <input id="customSepTerm" placeholder="ตัวคั่น" style="width:70px; display:none;">
+                    <span style="margin-left: 10px;">คั่นใบ:</span> <select id="sepCard"><option value="newline">บรรทัดใหม่</option><option value="custom">Custom</option></select>
+                    <input id="customSepCard" placeholder="ตัวคั่น" style="width:70px; display:none;">
+                    <button onclick="importCards()" style="background:#ff9800; color:white; margin-left: 10px;">📥 เริ่มนำเข้า</button>
                 </div>
             </section>
 
             <hr>
             <div style="text-align: center; margin-bottom: 20px;">
-                <button onclick="startPlayFromHome()" style="background:#10b981; color:white; padding:15px 30px; border-radius:15px; font-size:18px; box-shadow:0 4px 10px rgba(16,185,129,0.3);">?? ?????????????????????</button>
-                <button onclick="viewCards()" style="background:#6366f1; color:white;">?? ?????????????</button>
-                <button onclick="toggleShuffle()" id="shuffleBtn" style="background:#eee; color:#444;">?? ????: ???</button>
+                <button onclick="startPlayFromHome()" style="background:#10b981; color:white; padding:15px 30px; border-radius:15px; font-size:18px; box-shadow:0 4px 10px rgba(16,185,129,0.3);">▶️ เริ่มเรียนโฟลเดอร์นี้</button>
+                <button onclick="viewCards()" style="background:#6366f1; color:white;">📋 ดูรายการการ์ด</button>
+                <button onclick="toggleShuffle()" id="shuffleBtn" style="background:#eee; color:#444;">🔀 สุ่ม: ปิด</button>
             </div>
         </div>
 
@@ -187,31 +178,31 @@
         <div id="searchPage" style="display:none; padding-bottom:100px;">
         <div id="playSearchBtnContainer" style="display:none; margin-bottom: 15px;">
             <button onclick="startPlaySearch()" style="width:100%; background:#10b981; color:white; padding:15px; border-radius:15px; border:none; cursor:pointer; font-weight:bold; font-size:18px;">
-                ?? ?????????? (????????????????)
+                ▶️ เริ่มเรียน (เฉพาะใบในหน้านี้)
             </button>
         </div>
         
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2 style="color:#1e293b; margin:0;">?? ????????????</h2>
-            <button onclick="goToHome()" style="background: #64748b; color: white; padding: 8px 15px; border-radius: 8px; border:none;">? ???</button>
+            <h2 style="color:#1e293b; margin:0;">🔍 ค้นหาขั้นสูง</h2>
+            <button onclick="goToHome()" style="background: #64748b; color: white; padding: 8px 15px; border-radius: 8px; border:none;">❌ ปิด</button>
         </div>
 
         <div style="background:white; padding:20px; border-radius:15px; box-shadow:0 4px 12px rgba(0,0,0,0.05); margin-bottom:20px;">
-            <input id="advSearchInput" oninput="executeAdvancedSearch()" placeholder="????????????..." style="width:100%; box-sizing:border-box; margin-bottom:15px; font-size:18px; padding:12px; border-radius:10px; border:2px solid #e2e8f0;">
+            <input id="advSearchInput" oninput="executeAdvancedSearch()" placeholder="ค้นหาคำศัพท์..." style="width:100%; box-sizing:border-box; margin-bottom:15px; font-size:18px; padding:12px; border-radius:10px; border:2px solid #e2e8f0;">
             
             <select id="advFolderFilter" onchange="executeAdvancedSearch()" style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid #cbd5e1;">
-                <option value="all">-- ???????????????? --</option>
+                <option value="all">-- ค้นหาทุกโฟลเดอร์ --</option>
             </select>
 
             <div style="margin-bottom:15px; padding-top:12px; border-top:1px solid #e2e8f0;">
-                <div style="font-size:13px; font-weight:bold; color:#475569; margin-bottom:8px;">?? ?????????????????? (due)</div>
+                <div style="font-size:13px; font-weight:bold; color:#475569; margin-bottom:8px;">📅 กรองตามวันนัดทบทวน (due)</div>
                 <select id="advDueFilterMode" onchange="onAdvDueFilterModeChange()" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; border:1px solid #cbd5e1;">
-                    <option value="all">?????? ? ????????????????</option>
-                    <option value="today">???????????</option>
-                    <option value="pick">??????????? (??? / ????? / ??)</option>
+                    <option value="all">ทุกวัน — ปิดตัวกรองวันที่</option>
+                    <option value="today">ทบทวนวันนี้</option>
+                    <option value="pick">เลือกวันที่ (วัน / เดือน / ปี)</option>
                 </select>
                 <div id="advDueDatePickWrap" style="display:none;">
-                    <label style="font-size:12px; color:#64748b; display:block; margin-bottom:6px;">??????????? (?????? ? ?.?.)</label>
+                    <label style="font-size:12px; color:#64748b; display:block; margin-bottom:6px;">เลือกวันที่ (ปฏิทิน — ค.ศ.)</label>
                     <input type="date" id="advDueDatePick" onchange="executeAdvancedSearch()" style="width:100%; box-sizing:border-box; padding:10px; border-radius:8px; border:1px solid #cbd5e1;">
                 </div>
             </div>
@@ -220,17 +211,17 @@
         </div>
 
         <div id="searchBulkControls" style="margin-bottom:15px; gap:10px; display: flex;">
-            <button onclick="selectAllSearchCards(true)" style="background:#6366f1; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:14px;">? ?????????????????????</button>
-            <button onclick="selectAllSearchCards(false)" style="background:#cbd5e1; color:#1e293b; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:14px;">?? ??????????????</button>
+            <button onclick="selectAllSearchCards(true)" style="background:#6366f1; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:14px;">✅ เลือกทั้งหมดในหน้านี้</button>
+            <button onclick="selectAllSearchCards(false)" style="background:#cbd5e1; color:#1e293b; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:14px;">🔄 ยกเลิกการเลือก</button>
         </div>
 
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
             <div id="searchResultsCount" style="font-weight: bold; color: #1e293b;"></div>
             <select id="itemsPerPageSelect" onchange="changeItemsPerPage()" style="padding:5px 10px; border-radius:8px; border:1px solid #cbd5e1;">
-                <option value="10">10 ??</option>
-                <option value="20" selected>20 ??</option>
-                <option value="50">50 ??</option>
-                <option value="all">???????</option>
+                <option value="10">10 ใบ</option>
+                <option value="20" selected>20 ใบ</option>
+                <option value="50">50 ใบ</option>
+                <option value="all">ทั้งหมด</option>
             </select>
         </div>
 
@@ -239,107 +230,107 @@
 
         <div id="searchBulkActionOuter" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); width:90%; max-width:700px; background:#1e293b; color:white; padding:15px; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.3); z-index:2000;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                <span id="searchSelectedCount">????????? 0 ??</span>
+                <span id="searchSelectedCount">เลือกแล้ว 0 ใบ</span>
                 <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                    <button onclick="copyFormattedExport()" style="background:#8b5cf6; border:none; color:white; padding:8px 12px; border-radius:8px; cursor:pointer;">?? ?????? (A=B*)</button>
-                    <button onclick="openBulkTagModal()" style="background:#10b981; border:none; color:white; padding:8px 12px; border-radius:8px; cursor:pointer;">??? ??????????</button>
-                    <button onclick="deleteSelectedFromSearch()" style="background:#ef4444; border:none; color:white; padding:8px 12px; border-radius:8px; cursor:pointer;">??? ??????????</button>
+                    <button onclick="copyFormattedExport()" style="background:#8b5cf6; border:none; color:white; padding:8px 12px; border-radius:8px; cursor:pointer;">📋 ส่งออก (A=B*)</button>
+                    <button onclick="openBulkTagModal()" style="background:#10b981; border:none; color:white; padding:8px 12px; border-radius:8px; cursor:pointer;">🏷️ จัดการแท็ก</button>
+                    <button onclick="deleteSelectedFromSearch()" style="background:#ef4444; border:none; color:white; padding:8px 12px; border-radius:8px; cursor:pointer;">🗑️ ลบที่เลือก</button>
                 </div>
             </div>
         </div>
         </div>
 
         <div id="tagManagerPage" style="display:none; padding-bottom:80px;">
-            <h2 style="color:#1e293b;">??? ???????????????????</h2>
-            <p style="color:#64748b; font-size:13px; margin-bottom:15px;">??????????????????????????????????????????? ?????????????????</p>
+            <h2 style="color:#1e293b;">🏷️ ตั้งค่าเงื่อนไขแท็ก</h2>
+            <p style="color:#64748b; font-size:13px; margin-bottom:15px;">กำหนดการเปลี่ยนแท็กอัตโนมัติเมื่อทบทวนเสร็จ หรือเมื่อลืมทบทวน</p>
             <div id="tagEditorList"></div>
-            <button onclick="goToHome()" style="margin-top:20px; width:100%; background:#64748b; color:white; padding:12px; border-radius:10px; border:none; cursor:pointer; font-weight:bold;">?? ?????????????????</button>
+            <button onclick="goToHome()" style="margin-top:20px; width:100%; background:#64748b; color:white; padding:12px; border-radius:10px; border:none; cursor:pointer; font-weight:bold;">⬅️ ปิดหน้าจัดการแท็ก</button>
         </div>
 
         <div id="downloadAudioPage" style="display:none; padding-bottom:80px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h2 style="color:#1e293b; margin:0;">?? ??????????????</h2>
-                <button onclick="goToHome()" style="background:#64748b; color:white; padding:8px 15px; border-radius:8px; border:none;">? ???</button>
+                <h2 style="color:#1e293b; margin:0;">🔊 ดาวน์โหลดเสียง</h2>
+                <button onclick="goToHome()" style="background:#64748b; color:white; padding:8px 15px; border-radius:8px; border:none;">❌ ปิด</button>
             </div>
             <p style="color:#64748b; font-size:13px; margin-bottom:15px;">
-                ????????????????????????????????: ???? <b>????</b> ? ???? 1 ?????? ? ???? <b>????</b> ? ??????? (???????? shadowing)
+                สร้างไฟล์เสียงจากการ์ดในโฟลเดอร์: อ่าน <b>หน้า</b> → หยุด 1 วินาที → อ่าน <b>หลัง</b> → ใบถัดไป (เหมาะกับ shadowing)
             </p>
             <div style="background:white; padding:20px; border-radius:15px; box-shadow:0 4px 12px rgba(0,0,0,0.05); margin-bottom:20px;">
-                <label style="font-size:13px; font-weight:bold; color:#475569; display:block; margin-bottom:8px;">?? ?????????????</label>
+                <label style="font-size:13px; font-weight:bold; color:#475569; display:block; margin-bottom:8px;">📂 เลือกโฟลเดอร์</label>
                 <select id="dlAudioFolderSelect" style="width:100%; padding:12px; border-radius:8px; border:1px solid #cbd5e1; margin-bottom:15px;"></select>
 
-                <label style="font-size:13px; font-weight:bold; color:#475569; display:block; margin-bottom:8px;">?? ????????????? (??????????????)</label>
+                <label style="font-size:13px; font-weight:bold; color:#475569; display:block; margin-bottom:8px;">🔊 ตั้งภาษาเสียง (เหมือนตอนเรียน)</label>
                 <div style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:15px;">
                     <label style="font-size:12px; display:flex; align-items:center; gap:6px;">
-                        ????:
+                        หน้า:
                         <select id="dlTtsLangFrontSelect" onchange="onTtsLangFrontChange(this.value)" style="padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
-                            <option value="auto">????????? (??????????)</option>
-                            <option value="th">???</option>
+                            <option value="auto">อัตโนมัติ (ตามข้อความ)</option>
+                            <option value="th">ไทย</option>
                             <option value="en">English</option>
-                            <option value="ja">???</option>
+                            <option value="ja">日本語</option>
                         </select>
                     </label>
                     <label style="font-size:12px; display:flex; align-items:center; gap:6px;">
-                        ????:
+                        หลัง:
                         <select id="dlTtsLangBackSelect" onchange="onTtsLangBackChange(this.value)" style="padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
-                            <option value="th">???</option>
+                            <option value="th">ไทย</option>
                             <option value="en">English</option>
-                            <option value="ja">???</option>
+                            <option value="ja">日本語</option>
                         </select>
                     </label>
                 </div>
 
                 <button id="dlAudioGenerateBtn" onclick="generateFolderAudioDownload()" style="width:100%; padding:14px; background:#6366f1; color:white; border:none; border-radius:12px; font-weight:bold; font-size:16px; cursor:pointer; box-shadow:0 4px 10px rgba(99,102,241,0.3);">
-                    ?? ?????????????????????????? (.wav)
+                    ⬇️ สร้างและดาวน์โหลดไฟล์เสียง (.wav)
                 </button>
-                <p style="font-size:11px; color:#94a3b8; margin-top:10px; margin-bottom:0;">?????????????????????????????????? ? ?????????????????????????????</p>
+                <p style="font-size:11px; color:#94a3b8; margin-top:10px; margin-bottom:0;">ต้องเชื่อมอินเทอร์เน็ตขณะสร้างไฟล์ · โฟลเดอร์ใหญ่อาจใช้เวลาสักครู่</p>
                 <div id="dlAudioProgress" style="margin-top:12px; font-size:13px; color:#475569; min-height:20px;"></div>
             </div>
         </div>
 
         <div id="calendarPage" style="display:none; padding-bottom:50px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <button onclick="prevMonth()" style="background:#eee; padding:10px 15px;">?</button>
+                <button onclick="prevMonth()" style="background:#eee; padding:10px 15px;">◀</button>
                 <span id="monthTitle" style="font-weight:bold;font-size:20px;"></span>
-                <button onclick="nextMonth()" style="background:#eee; padding:10px 15px;">?</button>
+                <button onclick="nextMonth()" style="background:#eee; padding:10px 15px;">▶</button>
             </div>
             <div id="calendarGrid"></div>
-            <button onclick="goToHome()" style="margin-top:20px; width:100%; background:#64748b; color:white; padding:12px; border-radius:10px; border:none; cursor:pointer; font-weight:bold;">?? ?????????????</button>
+            <button onclick="goToHome()" style="margin-top:20px; width:100%; background:#64748b; color:white; padding:12px; border-radius:10px; border:none; cursor:pointer; font-weight:bold;">⬅️ ปิดหน้าปฏิทิน</button>
         </div>
 
         <div id="calendarModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; justify-content:center; align-items:center;">
             <div style="background:white; padding:20px; border-radius:10px; width:90%; max-width:500px; max-height:80vh; overflow-y:auto; position:relative;">
-                <h3 id="modalDateTitle" style="margin-top:0; color:#1e293b; border-bottom:2px solid #e2e8f0; padding-bottom:10px;">?? ??????????????????????</h3>
+                <h3 id="modalDateTitle" style="margin-top:0; color:#1e293b; border-bottom:2px solid #e2e8f0; padding-bottom:10px;">📅 รายการทบทวนวันที่เลือก</h3>
                 
                 <div id="calendarReviewOptions" style="display: none; background: #f0fdf4; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center; border: 1px solid #bbf7d0;">
                     <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 15px;">
                         <select id="calReviewTagFilter" style="padding: 8px; border-radius: 5px; border: 1px solid #cbd5e1; flex: 1;"></select>
                         <select id="calReviewLimit" style="padding: 8px; border-radius: 5px; border: 1px solid #cbd5e1; flex: 1;">
-                            <option value="all">????????????</option>
-                            <option value="10">10 ??</option>
-                            <option value="20">20 ??</option>
-                            <option value="50">50 ??</option>
+                            <option value="all">ทบทวนทั้งหมด</option>
+                            <option value="10">10 ใบ</option>
+                            <option value="20">20 ใบ</option>
+                            <option value="50">50 ใบ</option>
                         </select>
                     </div>
                     <button onclick="startCalendarReview()" style="width: 100%; padding: 12px; background: #22c55e; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(34, 197, 94, 0.2);">
-                        ?? ???????????????????
+                        ▶️ เริ่มเรียนของวันนี้
                     </button>
                 </div>
 
                 <div id="modalCardList"></div>
-                <button onclick="closeModal()" style="margin-top:15px; padding:8px 15px; background:#ef4444; color:white; border:none; border-radius:5px; cursor:pointer; width:100%;">???</button>
+                <button onclick="closeModal()" style="margin-top:15px; padding:8px 15px; background:#ef4444; color:white; border:none; border-radius:5px; cursor:pointer; width:100%;">ปิด</button>
             </div>
         </div>
 
         <div id="bulkTagModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:3000; justify-content:center; align-items:center;">
             <div style="background:white; width:90%; max-width:400px; border-radius:20px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
-                <h3 style="margin-top:0; color:#1e293b;">??? ????????????????????????</h3>
-                <p style="font-size:12px; color:#64748b; margin-bottom:10px;">??????????????????????????????</p>
+                <h3 style="margin-top:0; color:#1e293b;">🏷️ เลือกแท็กที่ต้องการเพิ่ม</h3>
+                <p style="font-size:12px; color:#64748b; margin-bottom:10px;">สามารถเลือกได้หลายแท็กพร้อมกัน</p>
                 <div id="bulkTagCheckboxes" style="max-height:250px; overflow-y:auto; margin-bottom:15px; display:flex; flex-direction:column; gap:8px; text-align:left;">
                     </div>
                 <div style="display:flex; gap:10px;">
-                    <button onclick="applyBulkTags()" style="flex-grow:1; background:#10b981; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold;">? ???????????????</button>
-                    <button onclick="closeBulkTagModal()" style="background:#ef4444; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold;">? ??????</button>
+                    <button onclick="applyBulkTags()" style="flex-grow:1; background:#10b981; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold;">✅ ยืนยันเพิ่มแท็ก</button>
+                    <button onclick="closeBulkTagModal()" style="background:#ef4444; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold;">❌ ยกเลิก</button>
                 </div>
             </div>
         </div>
@@ -348,7 +339,7 @@
 
 <script>
     // ==========================================
-    // ?? ?????????????????????????? (UI Status)
+    // 🔥 ระบบแจ้งเตือนสถานะการซิงค์ (UI Status)
     // ==========================================
     let syncTimeout;
     function showSyncStatus(message, type="loading") {
@@ -359,108 +350,23 @@
         banner.style.display = "block";
         
         if (type === "loading") {
-            banner.innerHTML = `?? ${message}`;
-            banner.style.background = "#eab308"; // ????????
+            banner.innerHTML = `🔄 ${message}`;
+            banner.style.background = "#eab308"; // สีเหลือง
             banner.style.color = "#000";
         } else if (type === "success") {
-            banner.innerHTML = `? ${message}`;
-            banner.style.background = "#10b981"; // ???????
+            banner.innerHTML = `✅ ${message}`;
+            banner.style.background = "#10b981"; // สีเขียว
             banner.style.color = "#fff";
-            syncTimeout = setTimeout(() => { banner.style.display = "none"; }, 3000); // ??????? 3 ??????
+            syncTimeout = setTimeout(() => { banner.style.display = "none"; }, 3000); // หายไปใน 3 วินาที
         } else if (type === "error") {
-            banner.innerHTML = `? ${message}`;
-            banner.style.background = "#ef4444"; // ?????
+            banner.innerHTML = `❌ ${message}`;
+            banner.style.background = "#ef4444"; // สีแดง
             banner.style.color = "#fff";
         }
     }
 
     // ==========================================
-    // Mark syntax: | = column, * = new row, ?? = close table
-    // ==========================================
-    const MARK_TABLE_CLOSE = '\uD83C\uDF32';
-
-    function escapeHtml(text) {
-        return String(text || '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
-    }
-
-    function stripMarkForSpeech(text) {
-        return String(text || '')
-            .replace(/\uD83C\uDF32/g, ' ')
-            .replace(/\*/g, '. ')
-            .replace(/\|/g, ', ')
-            .replace(/\s+/g, ' ')
-            .trim();
-    }
-
-    function formatPlainMark(text) {
-        return escapeHtml(text).replace(/\*/g, '<br>').replace(/\n/g, '<br>');
-    }
-
-    function parseMarkRows(tableText) {
-        return String(tableText || '')
-            .replace(/\uD83C\uDF32/g, '*')
-            .split('*')
-            .map(row => row.trim())
-            .filter(Boolean)
-            .map(row => {
-                let cells = row.split('|').map(cell => cell.trim());
-                while (cells.length > 0 && cells[cells.length - 1] === '') cells.pop();
-                return cells;
-            })
-            .filter(cells => cells.length > 0);
-    }
-
-    function renderMarkTable(tableText) {
-        let rows = parseMarkRows(tableText);
-        if (!rows.length) return escapeHtml(tableText);
-
-        let header = rows[0];
-        let body = rows.slice(1);
-        let html = '<table class="fc-mark-table"><thead><tr>';
-        header.forEach(cell => { html += `<th>${escapeHtml(cell)}</th>`; });
-        html += '</tr></thead><tbody>';
-        body.forEach(row => {
-            html += '<tr>';
-            for (let i = 0; i < header.length; i++) {
-                html += `<td>${escapeHtml(row[i] || '')}</td>`;
-            }
-            html += '</tr>';
-        });
-        html += '</tbody></table>';
-        return html;
-    }
-
-    function formatMarkContent(raw) {
-        let text = String(raw || '');
-        if (!text.includes('|') && !text.includes('*') && !text.includes(MARK_TABLE_CLOSE)) {
-            return formatPlainMark(text);
-        }
-        if (!text.includes('|')) return formatPlainMark(text);
-
-        let closeIdx = text.indexOf(MARK_TABLE_CLOSE);
-        let tableRaw = closeIdx >= 0 ? text.slice(0, closeIdx) : text;
-        let after = closeIdx >= 0 ? text.slice(closeIdx + MARK_TABLE_CLOSE.length).trim() : '';
-
-        let rowMatch = /[^|*\uD83C\uDF32\n]+\|[^|*\uD83C\uDF32]*/.exec(tableRaw);
-        if (!rowMatch) return formatPlainMark(text);
-
-        let before = tableRaw.slice(0, rowMatch.index).trim();
-        let tablePart = tableRaw.slice(rowMatch.index);
-
-        let html = '<div class="fc-mark-content">';
-        if (before) html += `<div class="fc-mark-text">${formatPlainMark(before)}</div>`;
-        html += renderMarkTable(tablePart);
-        if (after) html += `<div class="fc-mark-text">${formatPlainMark(after)}</div>`;
-        html += '</div>';
-        return html;
-    }
-
-    // ==========================================
-    // ?? FIREBASE INITIALIZATION & AUTHENTICATION ??
+    // 🔥 FIREBASE INITIALIZATION & AUTHENTICATION 🔥
     // ==========================================
     const firebaseConfig = {
         apiKey: "AIzaSyCmbTUstDsHGQbL_x3Xf3yAjGFgQY5PGwM",
@@ -477,18 +383,18 @@
     const db = firebase.firestore();
 
     // ==========================================
-    // ?? ???? Sync ???????????????????? Add0.1
+    // 🌟 ระบบ Sync ข้อมูลความเร็วสูงจาก Add0.1
     // ==========================================
     let currentUserUid = null;
 
-    // ????????? 1: ???? Offline Persistence (?????????????? 0.1 ??)
+    // เทคนิคที่ 1: เปิด Offline Persistence (หัวใจของความไว 0.1 วิ)
     db.enablePersistence().catch((err) => {
         if (err.code == 'failed-precondition') { console.warn("Multiple tabs open, persistence can only be enabled in one tab at a time."); }
         else if (err.code == 'unimplemented') { console.warn("The current browser does not support persistence."); }
     });
     auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
 
-    // ?????????????????????????? (?????????????????????????????????????)
+    // ระบบแจ้งเตือนสถานะการซิงค์ (เพื่อให้ผู้ใช้รู้ว่าข้อมูลปลอดภัยแล้ว)
     function showSyncStatus(msg, type) {
         let el = document.getElementById("syncStatus");
         if(!el) {
@@ -504,13 +410,13 @@
         setTimeout(() => el.style.display = "none", 3000);
     }
 
-    // ??????????????????????????????????????
+    // ระบบตรวจจับการล็อกอินและสั่งโหลดข้อมูล
     auth.onAuthStateChanged((user) => {
         if (user) {
             currentUserUid = user.uid;
             document.getElementById("loginPrompt").style.display = "none";
             document.getElementById("main-app-content").style.display = "block";
-            // ???????????????????????????????????????
+            // สั่งโหลดข้อมูลทันทีที่ยืนยันตัวตนสำเร็จ
             loadData(user.uid);
         } else {
             currentUserUid = null;
@@ -519,49 +425,49 @@
         }
     });
 
-    // ????????? 2: Real-time Snapshot (???????????????????????? Refresh)
+    // เทคนิคที่ 2: Real-time Snapshot (ข้อมูลอัปเดตเองไม่ต้องกด Refresh)
     function loadData(uid) {
-        showSyncStatus("????????????????...", "loading");
+        showSyncStatus("กำลังซิงค์ข้อมูล...", "loading");
 
-        // ??? onSnapshot ????????????????? Cache ???? ????????????????? Cloud ??????
+        // ใช้ onSnapshot เพื่อดึงข้อมูลจาก Cache ก่อน แล้วค่อยอัปเดตจาก Cloud ทีหลัง
         db.collection("users").doc(uid).onSnapshot((doc) => {
             if (doc.exists) {
                 const data = doc.data();
                 folders = data.folders || [];
                 tags = data.tags || [];
                 
-                // ???? Render ???????????????????????????????????
+                // สั่ง Render หน้าจอใหม่ด้วยข้อมูลที่เพิ่งซิงค์มา
                 if (typeof renderTagsUI === "function") renderTagsUI();
                 
                 if (doc.metadata.fromCache) {
-                    showSyncStatus("? ?????????????? (Offline)", "success");
+                    showSyncStatus("⚡ โหลดจากเครื่อง (Offline)", "success");
                 } else {
-                    showSyncStatus("?? ?????? Cloud ????", "success");
+                    showSyncStatus("☁️ ตรงกับ Cloud แล้ว", "success");
                 }
             } else {
-                showSyncStatus("? ???????????????????", "success");
+                showSyncStatus("✅ เริ่มใช้งานครั้งแรก", "success");
             }
         }, error => {
             console.error(error);
-            showSyncStatus("? ???????????????????", "error");
+            showSyncStatus("❌ การเชื่อมต่อมีปัญหา", "error");
         });
     }
 
-    // ???????? Save ???????????????????????
+    // ฟังก์ชัน Save ที่เชื่อมต่อกับระบบใหม่
     function save() {
         if (!currentUserUid) return;
-        showSyncStatus("???????????...", "loading");
+        showSyncStatus("กำลังบันทึก...", "loading");
         db.collection("users").doc(currentUserUid).set({
             folders: folders,
             tags: tags,
             lastModified: Date.now()
         }, { merge: true }).then(() => {
-            showSyncStatus("?? ????????????", "success");
+            showSyncStatus("☁️ บันทึกสำเร็จ", "success");
         }).catch(err => {
-            showSyncStatus("? ???????????????", "error");
+            showSyncStatus("❌ บันทึกไม่สำเร็จ", "error");
         });
     }
-    function saveData() { save(); } // ?????????????????????
+    function saveData() { save(); } // เผื่อเรียกใช้ชื่อเดิม
     
 
     auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
@@ -601,11 +507,11 @@
     }
 
     // ==========================================
-    // ??? ?????????????: ????????????? (?????? 1,000,000+ ??)
+    // 🗄️ สมองกลอัปเกรด: ระบบตู้เอกสาร (รองรับ 1,000,000+ คำ)
     // ==========================================
     async function loadData(uid) {
         try {
-            // 1. ?????????????????????????????????????? 0.1 ??
+            // 1. โหลดจากความจำเครื่องให้หน้าจอขึ้นทันที 0.1 วิ
             let localFolders = JSON.parse(localStorage.getItem("folders")) || [];
             let localTags = JSON.parse(localStorage.getItem("tags")) || [];
             let localModified = parseInt(localStorage.getItem("lastModified")) || 0;
@@ -618,22 +524,22 @@
                 if (typeof renderTagInputs === "function") renderTagInputs();
             }
 
-            // 2. ?????????????? "?????????" ?? Cloud
+            // 2. เปิดระบบเฝ้าดู "ตู้เอกสาร" บน Cloud
             const userRef = db.collection("users").doc(uid);
             userRef.onSnapshot(async (doc) => {
                 if (doc.exists) {
                     const data = doc.data();
                     const cloudModified = data.lastModified || 0;
-                    const folderCount = data.folderCount || 0; // ?????????????????
+                    const folderCount = data.folderCount || 0; // ดูว่ามีกี่ลิ้นชัก
 
-                    // ??? Cloud ????????????? ?????????????????????????
+                    // ถ้า Cloud มีของใหม่กว่า ให้ทยอยเปิดดึงทีละลิ้นชัก
                     if (cloudModified > lastModified) {
-                        showSyncStatus("??????????????????????????...", "loading");
+                        showSyncStatus("กำลังดึงข้อมูลจากตู้เอกสาร...", "loading");
                         tags = data.tags || [];
                         lastModified = cloudModified;
                         
                         let newFolders = [];
-                        // ??????????????????????????????
+                        // วนลูปเปิดดึงข้อมูลทีละโฟลเดอร์
                         for(let i = 0; i < folderCount; i++) {
                             let folderDoc = await userRef.collection("foldersList").doc("folder_" + i).get();
                             if(folderDoc.exists) {
@@ -642,14 +548,14 @@
                         }
                         folders = newFolders; 
 
-                        // ????????????
+                        // เซฟลงเครื่อง
                         localStorage.setItem("folders", JSON.stringify(folders));
                         localStorage.setItem("tags", JSON.stringify(tags));
                         localStorage.setItem("lastModified", lastModified);
 
                         render();
                         if (typeof renderTagInputs === "function") renderTagInputs();
-                        showSyncStatus("?? ?????????????????????????", "success");
+                        showSyncStatus("☁️ โหลดข้อมูลล่าสุดเรียบร้อย", "success");
                     }
                 } else {
                     saveData(); 
@@ -658,49 +564,49 @@
 
         } catch (e) {
             console.error("Load Error:", e);
-            showSyncStatus("? ???????????????????", "error");
+            showSyncStatus("❌ โหลดข้อมูลไม่สำเร็จ", "error");
         }
     }
 
-    // ?????????????????????????????? (??????????????)
+    // ระบบเซฟแบบแยกโฟลเดอร์ลงลิ้นชัก (ป้องกันไฟล์แตก)
     async function save() {
         if (!currentUserUid) return;
         lastModified = Date.now();
         
-        // ?????????????????????
+        // เซฟลงเครื่องกันเหนียว
         localStorage.setItem("folders", JSON.stringify(folders));
         localStorage.setItem("tags", JSON.stringify(tags));
         localStorage.setItem("lastModified", lastModified);
 
-        showSyncStatus("???????????????????????...", "loading");
+        showSyncStatus("กำลังแยกเอกสารลงลิ้นชัก...", "loading");
         const userRef = db.collection("users").doc(currentUserUid);
         
         try {
-            // ???????????????????? ??????????????????????
+            // แปะป้ายหน้าตู้เอกสาร ว่าตอนนี้มีกี่โฟลเดอร์
             await userRef.set({
                 tags: tags,
                 folderCount: folders.length,
                 lastModified: lastModified
             }, { merge: true });
 
-            // ?? ????????????????: ???????? "1 ???????? = 1 ???????" 
+            // 🌟 พระเอกอยู่ตรงนี้: วนลูปเซฟ "1 โฟลเดอร์ = 1 ลิ้นชัก" 
             const promises = [];
             for(let i = 0; i < folders.length; i++) {
                 const folderRef = userRef.collection("foldersList").doc("folder_" + i);
                 promises.push(folderRef.set(folders[i]));
             }
-            await Promise.all(promises); // ????????????????????????????
+            await Promise.all(promises); // รอจนกว่าจะเก็บครบทุกโฟลเดอร์
 
-            showSyncStatus("?? ?????????????????????", "success");
+            showSyncStatus("☁️ บันทึกตู้เอกสารสำเร็จ", "success");
         } catch(err) {
             console.error("Save Error:", err);
-            showSyncStatus("? ???????????????", "error");
+            showSyncStatus("❌ บันทึกไม่สำเร็จ", "error");
         }
     }
     
     function saveData() { save(); }
 
-    // ?????????????????????????? (???????????? Timestamp)
+    // ฟังก์ชันสำหรับบันทึกข้อมูล (อัปเกรดให้มี Timestamp)
     function saveData() {
         if (!currentUserUid) return;
         lastModified = Date.now();
@@ -713,12 +619,12 @@
             tags: tags,
             lastModified: lastModified
         }, { merge: true }).then(() => {
-            showSyncStatus("?? ?????????? Cloud ????", "success");
+            showSyncStatus("☁️ บันทึกขึ้น Cloud แล้ว", "success");
         });
     }
 
     // ==========================================
-    // ??? ??????????????????????????????????? 
+    // 🛡️ ระบบจัดการการเข้าถึงและการดึงข้อมูล 
     // ==========================================
     auth.onAuthStateChanged(async (user) => {
         const logoutBtn = document.getElementById("logoutBtn");
@@ -733,14 +639,14 @@
             if(logoutBtn) logoutBtn.style.display = "inline-block";
             if(userInfo) {
                 userInfo.style.display = "inline-block";
-                userInfo.innerText = "?? " + user.displayName;
+                userInfo.innerText = "👤 " + user.displayName;
             }
             
             if(loginPrompt) loginPrompt.style.display = "none";
             if(mainAppContent) mainAppContent.style.display = "block";
             if(loadingScreen) loadingScreen.style.display = "none";
 
-            console.log("?? ???????????????????????: ???????????????????...");
+            console.log("🔐 สิทธิ์การเข้าถึงถูกต้อง: กำลังเริ่มดึงข้อมูล...");
             await loadData(user.uid); 
             
         } else {
@@ -768,9 +674,9 @@
     let isShowingAnswer = false;
     let shuffleMode = false;
     let playing = false;
-    // ???????????????: "home" | "search"
+    // หลังจบโหมดเรียน: "home" | "search"
     let returnAfterPlayTarget = "home";
-    // ???????????????? (TTS): front = auto|th|en|ja, back = th|en|ja
+    // ภาษาอ่านออกเสียง (TTS): front = auto|th|en|ja, back = th|en|ja
     let ttsLangFront = localStorage.getItem("ttsLangFront") || "auto";
     let ttsLangBack = localStorage.getItem("ttsLangBack") || "th";
     let autoPlayRunning = false;
@@ -796,7 +702,7 @@
             let dataString = JSON.stringify({folders: folders, tags: tags});
             let dataSizeMB = (new Blob([dataString]).size) / 1024 / 1024;
             
-            showSyncStatus("???????????????? Cloud...", "loading");
+            showSyncStatus("กำลังอัปโหลดขึ้น Cloud...", "loading");
 
             db.collection("users").doc(currentUserUid).set({
                 folders: folders,
@@ -804,13 +710,13 @@
                 lastModified: lastModified
             }, { merge: true })
             .then(() => {
-                console.log("?? ?????????? Cloud ?????? (" + dataSizeMB.toFixed(2) + " MB)");
-                showSyncStatus("?????????? Cloud ????!", "success");
+                console.log("☁️ บันทึกขึ้น Cloud สำเร็จ (" + dataSizeMB.toFixed(2) + " MB)");
+                showSyncStatus("บันทึกขึ้น Cloud แล้ว!", "success");
             })
             .catch(e => {
                 console.error("Cloud Save Error:", e);
-                showSyncStatus("??????????????", "error"); 
-                alert("? ??????????? Firebase ?????????????????????! ????????????????????????? ?????????????????????????????????????????");
+                showSyncStatus("อัปโหลดล้มเหลว", "error"); 
+                alert("❌ เซิร์ฟเวอร์ Firebase ปฏิเสธการบันทึกข้อมูล! อาจเพราะเน็ตเวิร์คมีปัญหา ข้อมูลถูกเก็บไว้ในเครื่องคุณเรียบร้อยแล้ว");
             });
         }
     }
@@ -872,7 +778,7 @@
         if (duePick) duePick.value = "";
         
         let fFilter = document.getElementById("advFolderFilter");
-        fFilter.innerHTML = `<option value="all">-- ???????????????? --</option>` + 
+        fFilter.innerHTML = `<option value="all">-- ค้นหาทุกโฟลเดอร์ --</option>` + 
                             folders.map((f, i) => `<option value="${f.name}">${f.name}</option>`).join("");
 
         renderSearchTagFilters();
@@ -904,9 +810,9 @@
         let sel = document.getElementById("dlAudioFolderSelect");
         if (!sel) return;
         if (folders.length === 0) {
-            sel.innerHTML = `<option value="">-- ???????????????? --</option>`;
+            sel.innerHTML = `<option value="">-- ยังไม่มีโฟลเดอร์ --</option>`;
         } else {
-            sel.innerHTML = folders.map(f => `<option value="${f.name}">${f.name} (${f.cards.length} ??)</option>`).join("");
+            sel.innerHTML = folders.map(f => `<option value="${f.name}">${f.name} (${f.cards.length} ใบ)</option>`).join("");
         }
         let frontSel = document.getElementById("dlTtsLangFrontSelect");
         let backSel = document.getElementById("dlTtsLangBackSelect");
@@ -928,10 +834,10 @@
             div.onclick = () => selectFolder(i);
             
             let delBtn = document.createElement("span");
-            delBtn.innerHTML = " ?"; delBtn.style.marginLeft = "10px"; delBtn.style.cursor = "pointer";
+            delBtn.innerHTML = " ×"; delBtn.style.marginLeft = "10px"; delBtn.style.cursor = "pointer";
             delBtn.onclick = (e) => {
                 e.stopPropagation();
-                if(confirm(`?????????? "${f.name}" ??????????????????????`)) {
+                if(confirm(`ลบโฟลเดอร์ "${f.name}" และการ์ดทั้งหมดด้านใน?`)) {
                     folders.splice(i, 1); current = -1; save(); render();
                 }
             };
@@ -940,11 +846,11 @@
         });
         
         if (current !== -1 && folders[current]) {
-            document.getElementById("currentFolder").innerText = `?? ???????: ${folders[current].name}`;
+            document.getElementById("currentFolder").innerText = `📂 กำลังดู: ${folders[current].name}`;
             if(!playing) viewCards();
         } else {
             document.getElementById("list").innerHTML = "";
-            document.getElementById("currentFolder").innerText = `???????????????????????????`;
+            document.getElementById("currentFolder").innerText = `กรุณาเลือกหรือสร้างโฟลเดอร์`;
         }
         renderTagInputs();
     }
@@ -962,10 +868,10 @@
     }
 
     function addCard() {
-        if (current === -1) return alert("??????????????????????????");
+        if (current === -1) return alert("กรุณาเลือกโฟลเดอร์ก่อนครับ");
         let f = document.getElementById("front").value.trim();
         let b = document.getElementById("back").value.trim();
-        if (!f || !b) return alert("????????????????????????????");
+        if (!f || !b) return alert("กรุณากรอกทั้งคำศัพท์และคำแปล");
         
         let selectedTags = Array.from(document.querySelectorAll("#multiTagInput input:checked")).map(cb => cb.value);
         let firstTagObj = tags.find(t => t.name === selectedTags[0]);
@@ -989,7 +895,7 @@
 
     function viewCards() {
         if (!folders[current] || folders[current].cards.length === 0) {
-            document.getElementById("list").innerHTML = "<p style='text-align:center; color:gray;'>??????????????????????????</p>";
+            document.getElementById("list").innerHTML = "<p style='text-align:center; color:gray;'>ยังไม่มีการ์ดในโฟลเดอร์นี้</p>";
             return;
         }
         
@@ -1006,7 +912,7 @@
             subDeckHTML += `
                 <button onclick="changeSubDeck(${i})" 
                         style="background:${isActive ? '#6366f1' : '#eee'}; color:${isActive ? 'white' : '#333'}; padding:5px 12px; font-size:12px; border-radius:8px; border:none; cursor:pointer; transition:0.2s;">
-                    ?? ?????? ${i+1} (${start}-${end})
+                    📦 ชุดที่ ${i+1} (${start}-${end})
                 </button>`;
         }
         subDeckHTML += `</div>`;
@@ -1016,17 +922,17 @@
 
         let html = `
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
-                <h3 style="margin:0;">?? ${folders[current].name} (${totalCards} ??)</h3>
+                <h3 style="margin:0;">📂 ${folders[current].name} (${totalCards} คำ)</h3>
                 
                 <div style="display:flex; align-items:center; gap:10px;">
                     <select id="setLimitSelect" onchange="changeSetLimit()" style="padding:6px; border-radius:8px;">
-                        <option value="10" ${itemsPerSubDeck==10?'selected':''}>???? 10 ??</option>
-                        <option value="20" ${itemsPerSubDeck==20?'selected':''}>???? 20 ??</option>
-                        <option value="50" ${itemsPerSubDeck==50?'selected':''}>???? 50 ??</option>
-                        <option value="999999" ${itemsPerSubDeck==999999?'selected':''}>???????????</option>
+                        <option value="10" ${itemsPerSubDeck==10?'selected':''}>แบ่ง 10 คำ</option>
+                        <option value="20" ${itemsPerSubDeck==20?'selected':''}>แบ่ง 20 คำ</option>
+                        <option value="50" ${itemsPerSubDeck==50?'selected':''}>แบ่ง 50 คำ</option>
+                        <option value="999999" ${itemsPerSubDeck==999999?'selected':''}>แสดงทั้งหมด</option>
                     </select>
-                    <button onclick="selectAllVisible(true)" style="background:#f1f5f9; font-size:12px; padding:6px 12px; border:1px solid #e2e8f0; border-radius:8px; cursor:pointer;">? ?????????????????????</button>
-                    <button onclick="selectAllVisible(false)" style="background:#f1f5f9; font-size:12px; padding:6px 12px; border:1px solid #e2e8f0; border-radius:8px; cursor:pointer;">? ??????</button>
+                    <button onclick="selectAllVisible(true)" style="background:#f1f5f9; font-size:12px; padding:6px 12px; border:1px solid #e2e8f0; border-radius:8px; cursor:pointer;">✅ เลือกทั้งหมดในหน้านี้</button>
+                    <button onclick="selectAllVisible(false)" style="background:#f1f5f9; font-size:12px; padding:6px 12px; border:1px solid #e2e8f0; border-radius:8px; cursor:pointer;">❌ ยกเลิก</button>
                 </div>
             </div>
             
@@ -1034,11 +940,11 @@
 
             <div id="bulkControl" style="background:#1e293b; color:white; padding:15px; border-radius:15px; margin-bottom:20px; display:none;">
                 <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-                    <span>????????? <b id="countSelect" style="color:#fbbf24;">0</b> ??</span>
+                    <span>เลือกอยู่ <b id="countSelect" style="color:#fbbf24;">0</b> ใบ</span>
                     <div style="display:flex; gap:8px;">
-                        <button onclick="bulkDelete()" style="background:#ef4444; color:white; padding:8px 12px; border-radius:8px; border:none; cursor:pointer;">??? ??????????</button>
+                        <button onclick="bulkDelete()" style="background:#ef4444; color:white; padding:8px 12px; border-radius:8px; border:none; cursor:pointer;">🗑️ ลบที่เลือก</button>
                         <select id="bulkTagTarget" style="padding:8px; border-radius:8px; border:none; color:black;"></select>
-                        <button onclick="bulkAddTag()" style="background:#6366f1; color:white; padding:8px 12px; border-radius:8px; border:none; cursor:pointer;">??? ?????????</button>
+                        <button onclick="bulkAddTag()" style="background:#6366f1; color:white; padding:8px 12px; border-radius:8px; border:none; cursor:pointer;">🏷️ เพิ่มแท็ก</button>
                     </div>
                 </div>
             </div>
@@ -1046,7 +952,7 @@
 
         visibleCards.forEach((c, i) => {
             let actualIndex = startIdx + i;
-            let dueDateDisplay = "???????????";
+            let dueDateDisplay = "ไม่ได้กำหนด";
             if (c.due) {
                 let d = new Date(c.due);
                 dueDateDisplay = `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
@@ -1057,28 +963,28 @@
                      ondragstart="handleDragStart(event)" ondragover="handleDragOver(event)" ondrop="handleDrop(event)" ondragend="handleDragEnd(event)"
                      style="text-align: left; display:flex; align-items:flex-start; gap:15px; margin: 10px 0; border-left: 5px solid #6366f1; padding:20px;">
                     
-                    <div style="color: #cbd5e1; font-size: 20px; cursor: grab; padding-top:2px;">??</div>
+                    <div style="color: #cbd5e1; font-size: 20px; cursor: grab; padding-top:2px;">⋮⋮</div>
                     <input type="checkbox" class="card-select" value="${actualIndex}" onchange="updateBulkBar()" style="width:20px; height:20px; cursor:pointer; margin-top:5px;">
                     
                     <div style="flex-grow:1; pointer-events: none;">
                         <div style="display: flex; justify-content: space-between; align-items:center;">
-                            <strong style="font-size:18px; color:#1e293b;">#${actualIndex + 1} ${formatMarkContent(c.front)}</strong>
+                            <strong style="font-size:18px; color:#1e293b;">#${actualIndex + 1} ${c.front}</strong>
                             <div style="text-align:right;">
-                                <span style="font-size: 11px; color: #94a3b8; display:block;">??????????</span>
+                                <span style="font-size: 11px; color: #94a3b8; display:block;">ทบทวนถัดไป</span>
                                 <span style="font-size: 13px; color: #6366f1; font-weight:bold;">${dueDateDisplay}</span>
                             </div>
                         </div>
-                        <div style="color: #475569; margin: 8px 0; font-size:16px; line-height:1.4;">${formatMarkContent(c.back)}</div>
+                        <div style="color: #475569; margin: 8px 0; font-size:16px; line-height:1.4;">${c.back}</div>
                     </div>
                     
-                    <button onclick="deleteSingleCard(${actualIndex})" style="background:none; color:#cbd5e1; border:none; cursor:pointer; font-size:18px; transition:0.2s;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#cbd5e1'">???</button>
+                    <button onclick="deleteSingleCard(${actualIndex})" style="background:none; color:#cbd5e1; border:none; cursor:pointer; font-size:18px; transition:0.2s;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#cbd5e1'">🗑️</button>
                 </div>`;
         });
 
         html += `</div>`;
         document.getElementById("list").innerHTML = html;
         
-        let tagOpts = `<option value="">-- ????????? --</option>` + tags.map(t => `<option value="${t.name}">${t.name}</option>`).join("");
+        let tagOpts = `<option value="">-- เลือกแท็ก --</option>` + tags.map(t => `<option value="${t.name}">${t.name}</option>`).join("");
         let bulkSelect = document.getElementById("bulkTagTarget");
         if(bulkSelect) bulkSelect.innerHTML = tagOpts;
     }
@@ -1090,10 +996,10 @@
         document.getElementById("countSelect").innerText = checked.length;
     }
     function selectAllVisible(status) { document.querySelectorAll('.card-select').forEach(cb => cb.checked = status); updateBulkBar(); }
-    function deleteSingleCard(index) { if(!confirm("?????????????")) return; folders[current].cards.splice(index, 1); save(); viewCards(); }
+    function deleteSingleCard(index) { if(!confirm("ลบการ์ดใบนี้?")) return; folders[current].cards.splice(index, 1); save(); viewCards(); }
     
     function bulkDelete() {
-        if(!confirm("?????????????????????????????????")) return;
+        if(!confirm("ลบการ์ดที่เลือกทั้งหมดใช่หรือไม่?")) return;
         let indexes = Array.from(document.querySelectorAll('.card-select:checked')).map(cb => parseInt(cb.value));
         indexes.sort((a,b) => b - a).forEach(i => folders[current].cards.splice(i, 1));
         save(); viewCards();
@@ -1101,7 +1007,7 @@
 
     function bulkAddTag() {
         let tagName = document.getElementById("bulkTagTarget").value;
-        if(!tagName) return alert("??????????????????");
+        if(!tagName) return alert("กรุณาเลือกแท็กก่อน");
         
         let tagObj = tags.find(t => t.name === tagName);
         let interval = tagObj ? Number(tagObj.interval) : 1;
@@ -1115,7 +1021,7 @@
                 card.due = Date.now() + (interval * 86400000); 
             }
         });
-        save(); viewCards(); alert(`????????? ${tagName} ???????????????????? ${interval} ???????!`);
+        save(); viewCards(); alert(`เพิ่มแท็ก ${tagName} และขยับวันทบทวนไปอีก ${interval} วันแล้ว!`);
     }
 
     function handleDragStart(e) { draggedItemIndex = e.currentTarget.getAttribute('data-index'); e.currentTarget.style.opacity = "0.4"; e.dataTransfer.effectAllowed = 'move'; }
@@ -1144,8 +1050,8 @@
         let failT = document.getElementById("tagDemote").value;
         let color = document.getElementById("tagColor").value;
 
-        if (!name) return alert("?????????????????");
-        if (tags.find(t => t.name === name)) return alert("?????????????????????");
+        if (!name) return alert("กรุณาตั้งชื่อแท็ก");
+        if (tags.find(t => t.name === name)) return alert("มีแท็กชื่อนี้อยู่แล้ว");
 
         tags.push({ name: name, interval: interval, promoteTo: nextT, demoteTo: failT, color: color });
         document.getElementById("tagName").value = ""; document.getElementById("tagInterval").value = "";
@@ -1158,7 +1064,7 @@
 
         let pSelect = document.getElementById("tagPromote");
         let dSelect = document.getElementById("tagDemote");
-        let options = `<option value="">-- ????? --</option>` + tags.map(t => `<option value="${t.name}">${t.name}</option>`).join("");
+        let options = `<option value="">-- ไม่มี --</option>` + tags.map(t => `<option value="${t.name}">${t.name}</option>`).join("");
         if (pSelect) pSelect.innerHTML = options;
         if (dSelect) dSelect.innerHTML = options;
 
@@ -1166,17 +1072,17 @@
         if (tagListDiv) {
             tagListDiv.innerHTML = tags.map((t, i) => `
                 <span class="tag-badge" style="background:${t.color}">
-                    ${t.name} (??? ${t.interval} ???) <button class="btn-delete-tag" onclick="deleteTag(${i})">?</button>
+                    ${t.name} (ทุก ${t.interval} วัน) <button class="btn-delete-tag" onclick="deleteTag(${i})">×</button>
                 </span>`).join("");
         }
     }
 
-    function deleteTag(i) { if (confirm(`?????? "${tags[i].name}"?`)) { tags.splice(i, 1); save(); renderTagInputs(); } }
+    function deleteTag(i) { if (confirm(`ลบแท็ก "${tags[i].name}"?`)) { tags.splice(i, 1); save(); renderTagInputs(); } }
 
     
 
     function importCards() {
-        if (current === -1) return alert("????????????????????????????");
+        if (current === -1) return alert("กรุณาเลือกโฟลเดอร์ก่อนนำเข้า");
         let text = document.getElementById("bulk").value.trim();
         if (!text) return;
         let termSep = document.getElementById("sepTerm").value;
@@ -1189,7 +1095,7 @@
             let parts = line.split(termSep);
             if (parts.length >= 2) { folders[current].cards.push({ front: parts[0].trim(), back: parts[1].trim(), tag: [], due: Date.now() }); count++; }
         });
-        alert(`???????????? ${count} ??`); document.getElementById("bulk").value = ""; save(); viewCards();
+        alert(`นำเข้าสำเร็จ ${count} ใบ`); document.getElementById("bulk").value = ""; save(); viewCards();
     }
 
     document.getElementById("sepTerm")?.addEventListener("change", (e) => { document.getElementById("customSepTerm").style.display = e.target.value === "custom" ? "inline" : "none"; });
@@ -1198,8 +1104,8 @@
     // 6. TAG MANAGER PAGE
     function renderTagManagerList() {
         let html = tags.map((t, index) => {
-            let nextOptions = `<option value="">-- ?????????? --</option>`;
-            let failOptions = `<option value="">-- ?????????? --</option>`;
+            let nextOptions = `<option value="">-- ไม่เปลี่ยน --</option>`;
+            let failOptions = `<option value="">-- ไม่เปลี่ยน --</option>`;
             tags.forEach(other => {
                 if(other.name !== t.name) {
                     nextOptions += `<option value="${other.name}" ${t.promoteTo === other.name ? 'selected' : ''}>${other.name}</option>`;
@@ -1214,27 +1120,27 @@
                 </div>
                 <div style="background:#f8fafc; padding:10px; border-radius:10px; font-size:13px; margin-bottom:10px;">
                     <div style="margin-bottom:8px;">
-                        <label>? ????????? ???????????????:</label>
+                        <label>✅ ทบทวนแล้ว เปลี่ยนแท็กเป็น:</label>
                         <select id="editNextTag-${index}" style="width:100%; padding:5px; border-radius:5px; border:1px solid #cbd5e1;">${nextOptions}</select>
                     </div>
                     <div>
-                        <label>?? ????????/??? ???????????????:</label>
+                        <label>⚠️ เลยกำหนด/ลืม เปลี่ยนแท็กเป็น:</label>
                         <select id="editFailTag-${index}" style="width:100%; padding:5px; border-radius:5px; border:1px solid #cbd5e1;">${failOptions}</select>
                     </div>
                 </div>
                 <div style="display:flex; gap:10px;">
-                    <button onclick="saveTagSettings(${index})" style="flex-grow:1; background:#10b981; color:white; border:none; padding:8px; border-radius:8px; font-weight:bold;">??????</button>
-                    <button onclick="deleteTagPermanently(${index})" style="background:#fee2e2; color:#ef4444; border:none; padding:8px; border-radius:8px;">???</button>
+                    <button onclick="saveTagSettings(${index})" style="flex-grow:1; background:#10b981; color:white; border:none; padding:8px; border-radius:8px; font-weight:bold;">บันทึก</button>
+                    <button onclick="deleteTagPermanently(${index})" style="background:#fee2e2; color:#ef4444; border:none; padding:8px; border-radius:8px;">🗑️</button>
                 </div>
             </div>`;
         }).join("");
-        document.getElementById("tagEditorList").innerHTML = html || "<p style='text-align:center; color:gray;'>????????????</p>";
+        document.getElementById("tagEditorList").innerHTML = html || "<p style='text-align:center; color:gray;'>ยังไม่มีแท็ก</p>";
     }
 
     function saveTagSettings(index) {
         let oldName = tags[index].name;
         let newName = document.getElementById(`editTagName-${index}`).value.trim();
-        if (!newName) return alert("?????????????????");
+        if (!newName) return alert("กรุณาระบุชื่อแท็ก");
 
         tags[index].name = newName;
         tags[index].color = document.getElementById(`editTagColor-${index}`).value;
@@ -1246,11 +1152,11 @@
                 if (c.tag && c.tag.includes(oldName)) c.tag = c.tag.map(t => t === oldName ? newName : t);
             }));
         }
-        save(); renderTagManagerList(); alert("????????????!");
+        save(); renderTagManagerList(); alert("บันทึกสำเร็จ!");
     }
 
     function deleteTagPermanently(index) {
-        if (!confirm("????????????????????????????????????")) return;
+        if (!confirm("ลบแท็กนี้ออกจากการ์ดทุกใบด้วยใช่ไหม?")) return;
         let name = tags[index].name;
         tags.splice(index, 1);
         folders.forEach(f => f.cards.forEach(c => { if (c.tag) c.tag = c.tag.filter(t => t !== name); }));
@@ -1265,14 +1171,14 @@
         let isNoTagSelected = selectedSearchTags.includes("no_tag");
         let noTagHtml = `
             <div onclick="toggleSearchTag('no_tag')" style="cursor:pointer; padding:6px 14px; border-radius:20px; border: 2px solid #94a3b8; background:${isNoTagSelected ? '#94a3b8' : 'white'}; color:${isNoTagSelected ? 'white' : '#64748b'}; font-weight:bold; font-size:13px; transition:0.2s; user-select:none; margin-right:4px;">
-                ${isNoTagSelected ? '? ' : '? '}?????????
+                ${isNoTagSelected ? '✓ ' : '❌ '}ไม่มีแท็ก
             </div>`;
 
         let html = tags.map(t => {
             let isSelected = selectedSearchTags.includes(t.name);
             return `
             <div onclick="toggleSearchTag('${t.name}')" style="cursor:pointer; padding:6px 14px; border-radius:20px; border: 2px solid ${t.color}; background:${isSelected ? t.color : 'white'}; color:${isSelected ? 'white' : t.color}; font-weight:bold; font-size:13px; transition:0.2s; user-select:none;">
-                ${isSelected ? '? ' : ''}${t.name}
+                ${isSelected ? '✓ ' : ''}${t.name}
             </div>`;
         }).join("");
 
@@ -1376,12 +1282,12 @@
         let paginationDiv = document.getElementById("searchPagination");
         
         if(!countDiv || !resultDiv) return;
-        countDiv.innerHTML = `????????? <b>${totalResults}</b> ??????`;
+        countDiv.innerHTML = `พบทั้งหมด <b>${totalResults}</b> รายการ`;
         resultDiv.innerHTML = ""; paginationDiv.innerHTML = "";
 
         if (totalResults === 0) {
             playBtnContainer.style.display = "none";
-            resultDiv.innerHTML = "<div style='text-align:center; color:#94a3b8; padding:40px; background:white; border-radius:15px;'>?????????????????????????????</div>";
+            resultDiv.innerHTML = "<div style='text-align:center; color:#94a3b8; padding:40px; background:white; border-radius:15px;'>ไม่พบคำศัพท์ที่ตรงกับเงื่อนไข</div>";
             updateSearchBulkBar();
             return;
         }
@@ -1397,19 +1303,19 @@
         let visibleCards = currentSearchResults.slice(startIndex, endIndex);
 
         playBtnContainer.style.display = "block";
-        playBtnContainer.querySelector("button").innerText = `?? ?????????? (????? ${visibleCards.length} ???????????)`;
+        playBtnContainer.querySelector("button").innerText = `▶️ เริ่มเรียน (เฉพาะ ${visibleCards.length} ใบในหน้านี้)`;
 
         visibleCards.forEach(c => {
             let tagBadges = (c.tag || []).map(tn => {
                 let tObj = tags.find(tg => tg.name === tn);
                 return `<span style="font-size:11px; font-weight:bold; background:${tObj ? tObj.color : '#eee'}; color:#1e293b; padding:2px 8px; border-radius:12px; margin-right:4px;">
-                    ${tn} <span style="cursor:pointer; color:#ef4444; margin-left:3px;" onclick="removeTagFromSearchCard('${c.folderName}', '${c.front}', '${tn}')">?</span>
+                    ${tn} <span style="cursor:pointer; color:#ef4444; margin-left:3px;" onclick="removeTagFromSearchCard('${c.folderName}', '${c.front}', '${tn}')">×</span>
                 </span>`;
             }).join("");
             
             let tagOptions = tags.map(t => `<option value="${t.name}">${t.name}</option>`).join("");
             tagBadges += `<select onchange="if(this.value) { addTagToSearchCard('${c.folderName}', '${c.front}', this.value); this.selectedIndex=0; }" style="background:#e2e8f0; border:none; border-radius:8px; padding:2px 6px; font-size:11px; cursor:pointer; margin-left:5px; outline:none;">
-                <option value="">+ ????? Tag</option>
+                <option value="">+ เลือก Tag</option>
                 ${tagOptions}
             </select>`;
 
@@ -1417,27 +1323,27 @@
                 <div class="card" style="text-align:left; border-left:5px solid #6366f1; padding:15px; margin-bottom:10px; background:white; border-radius:12px; box-shadow:0 2px 5px rgba(0,0,0,0.05); display:flex; align-items:center;">
                     <input type="checkbox" class="export-checkbox" data-front="${c.front}" data-back="${c.back}" data-folder="${c.folderName}" onchange="updateSearchBulkBar()" style="width:20px; height:20px; margin-right:15px; cursor:pointer;">
                     <div style="flex-grow:1;">
-                        <div style="font-size:11px; color:#94a3b8; margin-bottom:5px;">?? ????????: ${c.folderName}</div>
-                        <strong style="font-size:18px; color:#1e293b;">${formatMarkContent(c.front)}</strong>
-                        <div style="color:#475569; font-size:15px; margin:8px 0; background:#f8fafc; padding:8px; border-radius:8px;">${formatMarkContent(c.back)}</div>
+                        <div style="font-size:11px; color:#94a3b8; margin-bottom:5px;">📂 โฟลเดอร์: ${c.folderName}</div>
+                        <strong style="font-size:18px; color:#1e293b;">${c.front}</strong>
+                        <div style="color:#475569; font-size:15px; margin:8px 0; background:#f8fafc; padding:8px; border-radius:8px;">${c.back}</div>
                         <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">${tagBadges}</div>
                     </div>
                 </div>`;
         });
 
         if (totalPages > 1) {
-            if (currentSearchPage > 1) paginationDiv.innerHTML += `<button onclick="changeSearchPage(${currentSearchPage - 1})" style="padding:8px 12px; background:white; border:1px solid #cbd5e1; border-radius:8px; cursor:pointer; color:#64748b;">?</button>`;
+            if (currentSearchPage > 1) paginationDiv.innerHTML += `<button onclick="changeSearchPage(${currentSearchPage - 1})" style="padding:8px 12px; background:white; border:1px solid #cbd5e1; border-radius:8px; cursor:pointer; color:#64748b;">◀</button>`;
             for (let i = 1; i <= totalPages; i++) {
                 let isActive = (i === currentSearchPage);
                 paginationDiv.innerHTML += `<button onclick="changeSearchPage(${i})" style="padding:8px 15px; background:${isActive?'#6366f1':'white'}; color:${isActive?'white':'#1e293b'}; border:1px solid ${isActive?'#6366f1':'#cbd5e1'}; border-radius:8px; cursor:pointer; font-weight:bold;">${i}</button>`;
             }
-            if (currentSearchPage < totalPages) paginationDiv.innerHTML += `<button onclick="changeSearchPage(${currentSearchPage + 1})" style="padding:8px 12px; background:white; border:1px solid #cbd5e1; border-radius:8px; cursor:pointer; color:#64748b;">?</button>`;
+            if (currentSearchPage < totalPages) paginationDiv.innerHTML += `<button onclick="changeSearchPage(${currentSearchPage + 1})" style="padding:8px 12px; background:white; border:1px solid #cbd5e1; border-radius:8px; cursor:pointer; color:#64748b;">▶</button>`;
         }
         updateSearchBulkBar(); 
     }
 
     function removeTagFromSearchCard(folderName, frontText, tagName) {
-        if(!confirm(`?? Tag "${tagName}" ????`)) return;
+        if(!confirm(`ลบ Tag "${tagName}" ออก?`)) return;
         let fIdx = folders.findIndex(f => f.name === folderName);
         if(fIdx > -1) {
             let card = folders[fIdx].cards.find(c => c.front === frontText);
@@ -1478,7 +1384,7 @@
         let bar = document.getElementById("searchBulkActionOuter");
         if (checkedBoxes.length > 0) {
             bar.style.display = "block";
-            document.getElementById("searchSelectedCount").innerText = `????????? ${checkedBoxes.length} ??`;
+            document.getElementById("searchSelectedCount").innerText = `เลือกแล้ว ${checkedBoxes.length} ใบ`;
         } else {
             bar.style.display = "none";
         }
@@ -1486,18 +1392,18 @@
 
     function copyFormattedExport() {
         let selected = document.querySelectorAll(".export-checkbox:checked");
-        if(selected.length === 0) return alert("???????????????????");
+        if(selected.length === 0) return alert("กรุณาเลือกการ์ดก่อน");
         let result = "";
         selected.forEach(cb => { result += `${cb.getAttribute("data-front")}=${cb.getAttribute("data-back")}*\n`; });
         navigator.clipboard.writeText(result).then(() => {
-            alert("????????????!\n\n" + result);
+            alert("คัดลอกสำเร็จ!\n\n" + result);
             selectAllSearchCards(false);
-        }).catch(err => alert("??????????????: " + err));
+        }).catch(err => alert("เกิดข้อผิดพลาด: " + err));
     }
 
     function deleteSelectedFromSearch() {
         let selected = document.querySelectorAll(".export-checkbox:checked");
-        if (!confirm(`????????????????????????????? ${selected.length} ?? ???????????`)) return;
+        if (!confirm(`คุณต้องการลบการ์ดที่เลือกทั้ง ${selected.length} ใบ ใช่หรือไม่?`)) return;
         
         selected.forEach(cb => {
             let fname = cb.getAttribute("data-folder");
@@ -1511,7 +1417,7 @@
     function openBulkTagModal() {
         let container = document.getElementById("bulkTagCheckboxes");
         if(tags.length === 0) {
-            container.innerHTML = "<p style='color:gray;'>??????????????????</p>";
+            container.innerHTML = "<p style='color:gray;'>ยังไม่มีแท็กในระบบ</p>";
         } else {
             container.innerHTML = tags.map(t => `
                 <label style="display:flex; align-items:center; gap:8px; cursor:pointer; background:#f8fafc; padding:8px; border-radius:8px;">
@@ -1530,7 +1436,7 @@
     function applyBulkTags() {
         let selectedTags = Array.from(document.querySelectorAll('.bulk-tag-checkbox:checked')).map(cb => cb.value);
         if(selectedTags.length === 0) {
-            alert("??????????????????? 1 ???? (????????????)");
+            alert("กรุณาเลือกอย่างน้อย 1 แท็ก (หรือกดยกเลิก)");
             return;
         }
 
@@ -1559,7 +1465,7 @@
         save(); 
         executeAdvancedSearch({ keepPage: true }); 
         closeBulkTagModal();
-        alert(`???????????????????????????????????????!`);
+        alert(`เพิ่มแท็กและอัปเดตวันทบทวนเรียบร้อยแล้ว!`);
     }
 
     function startPlaySearch() {
@@ -1583,7 +1489,7 @@
 
     // 8. PLAY MODE
     function startPlayFromHome() {
-        if (current === -1 || !folders[current] || folders[current].cards.length === 0) return alert("???????????????????????????????????");
+        if (current === -1 || !folders[current] || folders[current].cards.length === 0) return alert("ไม่มีการ์ดในโฟลเดอร์นี้ให้เรียนครับ");
         let tempDeck = JSON.parse(JSON.stringify(folders[current].cards));
         if (shuffleMode) tempDeck.sort(() => Math.random() - 0.5);
         returnAfterPlayTarget = "home";
@@ -1595,7 +1501,7 @@
     function toggleShuffle() {
         shuffleMode = !shuffleMode;
         let btn = document.getElementById("shuffleBtn");
-        btn.innerText = shuffleMode ? "?? ????: ????" : "?? ????: ???";
+        btn.innerText = shuffleMode ? "🔀 สุ่ม: เปิด" : "🔀 สุ่ม: ปิด";
         btn.style.background = shuffleMode ? "#6366f1" : "#eee";
         btn.style.color = shuffleMode ? "white" : "#444";
     }
@@ -1675,7 +1581,7 @@
 
     function speakCurrentCardText() {
         if (!window.speechSynthesis) {
-            alert("??????????????????????????????????????????");
+            alert("เบราว์เซอร์นี้ไม่รองรับการอ่านออกเสียงครับ");
             return;
         }
         let c = sessionCards[currentIdx];
@@ -1683,19 +1589,19 @@
         syncTtsLangFromPlayUI();
         let text = isShowingAnswer ? (c.back || "") : (c.front || "");
         let langKey = isShowingAnswer ? ttsLangBack : ttsLangFront;
-        speakTextAsync(stripMarkForSpeech(text), langKey);
+        speakTextAsync(text, langKey);
     }
 
     function updateAutoPlayButtons() {
         let playBtn = document.getElementById("autoPlayBtn");
         let loopBtn = document.getElementById("autoLoopBtn");
         if (playBtn) {
-            playBtn.innerText = autoPlayRunning ? "?? ????" : "?? Play";
+            playBtn.innerText = autoPlayRunning ? "⏹️ หยุด" : "▶️ Play";
             playBtn.style.background = autoPlayRunning ? "#ef4444" : "#22c55e";
             playBtn.style.color = "white";
         }
         if (loopBtn) {
-            loopBtn.innerText = autoPlayLoop ? "?? ?????: ????" : "?? ?????: ???";
+            loopBtn.innerText = autoPlayLoop ? "🔁 วนซ้ำ: เปิด" : "🔁 วนซ้ำ: ปิด";
             loopBtn.style.background = autoPlayLoop ? "#6366f1" : "#e2e8f0";
             loopBtn.style.color = autoPlayLoop ? "white" : "#475569";
         }
@@ -1719,7 +1625,7 @@
             return;
         }
         if (!window.speechSynthesis) {
-            alert("???????????????????????????????????????????????????");
+            alert("เบราว์เซอร์นี้ไม่รองรับการอ่านออกเสียงอัตโนมัติครับ");
             return;
         }
         startAutoPlaySequence();
@@ -1732,9 +1638,9 @@
         let revealBtn = document.getElementById("revealBtn");
         let c = sessionCards[currentIdx];
         if (!cardText || !c) return;
-        cardText.innerHTML = `<div style="color:#6366f1;">${formatMarkContent(c.back)}</div>`;
+        cardText.innerHTML = `<span style="color:#6366f1;">${c.back}</span>`;
         if (cardDiv) cardDiv.style.background = "#f5f7ff";
-        if (revealBtn) revealBtn.innerText = "?? ?????????????";
+        if (revealBtn) revealBtn.innerText = "🔄 ดูคำศัพท์ใหม่";
         isShowingAnswer = true;
     }
 
@@ -1745,9 +1651,9 @@
         let revealBtn = document.getElementById("revealBtn");
         let c = sessionCards[currentIdx];
         if (!cardText || !c) return;
-        cardText.innerHTML = formatMarkContent(c.front);
+        cardText.textContent = c.front;
         if (cardDiv) cardDiv.style.background = "white";
-        if (revealBtn) revealBtn.innerText = "??? ??????";
+        if (revealBtn) revealBtn.innerText = "👁️ ดูเฉลย";
         isShowingAnswer = false;
     }
 
@@ -1759,13 +1665,13 @@
 
         if (isShowingAnswer) showFrontVisual();
 
-        await speakTextAsync(stripMarkForSpeech(c.front), ttsLangFront);
+        await speakTextAsync(c.front, ttsLangFront);
         if (!autoPlayRunning) return;
         await delayMs(1000);
         if (!autoPlayRunning) return;
 
         revealAnswerVisual();
-        await speakTextAsync(stripMarkForSpeech(c.back), ttsLangBack);
+        await speakTextAsync(c.back, ttsLangBack);
         if (!autoPlayRunning) return;
         await delayMs(500);
         if (!autoPlayRunning) return;
@@ -1801,14 +1707,14 @@
             let finished = currentIdx >= sessionCards.length;
             stopAutoPlay();
             if (finished && !autoPlayLoop) {
-                alert("???! ??????????????????");
+                alert("เย้! เรียนจบชุดแล้วครับ");
                 finishPlaySession();
             }
         }
     }
 
     if (window.speechSynthesis) {
-        speechSynthesis.onvoiceschanged = () => { /* ??????????????????? */ };
+        speechSynthesis.onvoiceschanged = () => { /* โหลดเสียงเมื่อพร้อม */ };
     }
 
     let dlAudioGenerating = false;
@@ -1850,7 +1756,7 @@
 
     function concatMonoBuffers(ctx, buffers) {
         let valid = buffers.filter(b => b && b.length > 0);
-        if (!valid.length) throw new Error("??????????????????????");
+        if (!valid.length) throw new Error("ไม่มีข้อมูลเสียงให้รวม");
         let total = valid.reduce((s, b) => s + b.length, 0);
         let out = ctx.createBuffer(1, total, ctx.sampleRate);
         let ch = out.getChannelData(0);
@@ -1873,7 +1779,7 @@
         for (let piece of pieces) {
             let url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${langCode}&q=${encodeURIComponent(piece)}`;
             let res = await fetch(url);
-            if (!res.ok) throw new Error("?????????????????? (????????????? CORS)");
+            if (!res.ok) throw new Error("โหลดเสียงไม่สำเร็จ (เครือข่ายหรือ CORS)");
             let ab = await res.arrayBuffer();
             decoded.push(await ctx.decodeAudioData(ab.slice(0)));
         }
@@ -1923,16 +1829,16 @@
     async function generateFolderAudioDownload() {
         if (dlAudioGenerating) return;
         let folderName = document.getElementById("dlAudioFolderSelect")?.value;
-        if (!folderName) return alert("??????????????????????");
+        if (!folderName) return alert("กรุณาเลือกโฟลเดอร์ครับ");
         let folder = folders.find(f => f.name === folderName);
-        if (!folder || !folder.cards.length) return alert("?????????????????????????");
+        if (!folder || !folder.cards.length) return alert("โฟลเดอร์นี้ไม่มีการ์ดครับ");
 
         let frontLang = document.getElementById("dlTtsLangFrontSelect")?.value || ttsLangFront;
         let backLang = document.getElementById("dlTtsLangBackSelect")?.value || ttsLangBack;
         onTtsLangFrontChange(frontLang);
         onTtsLangBackChange(backLang);
 
-        if (!confirm(`????????????????????????? "${folderName}" ????? ${folder.cards.length} ???\n(???? ? ???? 1 ?????? ? ????)`)) return;
+        if (!confirm(`สร้างไฟล์เสียงจากโฟลเดอร์ "${folderName}" จำนวน ${folder.cards.length} ใบ?\n(หน้า → หยุด 1 วินาที → หลัง)`)) return;
 
         let btn = document.getElementById("dlAudioGenerateBtn");
         let prog = document.getElementById("dlAudioProgress");
@@ -1947,11 +1853,11 @@
 
             for (let i = 0; i < folder.cards.length; i++) {
                 let card = folder.cards[i];
-                if (prog) prog.innerHTML = `? ???????????????... ????? ${i + 1} / ${folder.cards.length}`;
+                if (prog) prog.innerHTML = `⏳ กำลังสร้างเสียง... ใบที่ ${i + 1} / ${folder.cards.length}`;
                 await new Promise(r => setTimeout(r, 0));
 
-                let front = stripMarkForSpeech(card.front || "");
-                let back = stripMarkForSpeech(card.back || "");
+                let front = String(card.front || "").trim();
+                let back = String(card.back || "").trim();
 
                 if (front) {
                     let fl = resolveTtsApiLangCode(frontLang, front);
@@ -1964,17 +1870,17 @@
                 }
             }
 
-            if (prog) prog.innerHTML = "? ?????????????????...";
+            if (prog) prog.innerHTML = "⏳ กำลังรวมไฟล์เสียง...";
             let finalBuf = concatMonoBuffers(ctx, segments);
             let wavBlob = audioBufferToWav(finalBuf);
             let safeName = folderName.replace(/[\\/:*?"<>|]/g, "_");
             downloadAudioBlob(wavBlob, `${safeName}_shadowing.wav`);
-            if (prog) prog.innerHTML = `? ???????????????! (${folder.cards.length} ??)`;
-            alert(`? ????????????????????!\n????????: ${folderName}\n?????: ${folder.cards.length} ??`);
+            if (prog) prog.innerHTML = `✅ ดาวน์โหลดสำเร็จ! (${folder.cards.length} ใบ)`;
+            alert(`✅ สร้างไฟล์เสียงสำเร็จ!\nโฟลเดอร์: ${folderName}\nจำนวน: ${folder.cards.length} ใบ`);
         } catch (err) {
             console.error(err);
-            if (prog) prog.innerHTML = "? ??????????????????";
-            alert("???????????????????????????\n\n" + (err.message || err) + "\n\n???:\n- ???????????? https (?????????? offline)\n- ???????????????????\n- ???????????????????????????");
+            if (prog) prog.innerHTML = "❌ สร้างไฟล์ไม่สำเร็จ";
+            alert("สร้างไฟล์เสียงไม่สำเร็จครับ\n\n" + (err.message || err) + "\n\nลอง:\n- เปิดเว็บผ่าน https (ไม่ใช่ไฟล์ offline)\n- ตรวจสอบอินเทอร์เน็ต\n- ลองโฟลเดอร์ที่มีการ์ดน้อยลง");
         } finally {
             dlAudioGenerating = false;
             if (btn) btn.disabled = false;
@@ -1982,7 +1888,7 @@
     }
 
     function showCustomCard() {
-        if (currentIdx >= sessionCards.length) { alert("???! ??????????????????"); finishPlaySession(); return; }
+        if (currentIdx >= sessionCards.length) { alert("เย้! เรียนจบชุดแล้วครับ"); finishPlaySession(); return; }
 
         stopSpeech();
         let c = sessionCards[currentIdx]; isShowingAnswer = false;
@@ -1993,15 +1899,15 @@
         let progressPercent = ((currentIdx + 1) / sessionCards.length) * 100;
         let autoControlsHtml = sessionShowAutoControls ? `
                 <div style="display:flex; gap:10px; margin-bottom:12px; justify-content:center; flex-wrap:wrap;">
-                    <button type="button" id="autoPlayBtn" onclick="toggleAutoPlay()" style="flex:1; min-width:120px; max-width:200px; padding:12px 16px; border:none; border-radius:12px; font-weight:bold; font-size:16px; cursor:pointer; background:#22c55e; color:white;">?? Play</button>
-                    <button type="button" id="autoLoopBtn" onclick="toggleAutoPlayLoop()" style="flex:1; min-width:120px; max-width:200px; padding:12px 16px; border:none; border-radius:12px; font-weight:bold; font-size:14px; cursor:pointer;">?? ?????: ???</button>
+                    <button type="button" id="autoPlayBtn" onclick="toggleAutoPlay()" style="flex:1; min-width:120px; max-width:200px; padding:12px 16px; border:none; border-radius:12px; font-weight:bold; font-size:16px; cursor:pointer; background:#22c55e; color:white;">▶️ Play</button>
+                    <button type="button" id="autoLoopBtn" onclick="toggleAutoPlayLoop()" style="flex:1; min-width:120px; max-width:200px; padding:12px 16px; border:none; border-radius:12px; font-weight:bold; font-size:14px; cursor:pointer;">🔁 วนซ้ำ: ปิด</button>
                 </div>` : "";
 
         let html = `
             <div style="text-align:center; padding:10px; max-width:500px; margin:auto;">
                 <div style="margin-bottom: 15px;">
                     <div style="display:flex; justify-content:space-between; font-size:12px; color:#64748b; margin-bottom:5px;">
-                        <span>????? ${currentIdx + 1} ??? ${sessionCards.length}</span>
+                        <span>ใบที่ ${currentIdx + 1} จาก ${sessionCards.length}</span>
                         <span>${Math.round(progressPercent)}%</span>
                     </div>
                     <div style="width:100%; height:8px; background:#e2e8f0; border-radius:10px; overflow:hidden;">
@@ -2011,10 +1917,10 @@
 
                 <div style="background:white; padding:15px; border-radius:15px; margin-bottom:15px; box-shadow:0 2px 8px rgba(0,0,0,0.05); text-align:left;">
                     <div style="font-size:12px; color:#94a3b8; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-                        <span>??? ?????????????????:</span>
-                        <button onclick="showTagEditorInPlay()" style="background:#f1f5f9; border:none; padding:4px 8px; border-radius:5px; cursor:pointer; font-size:11px; color:#6366f1;">? ?????????</button>
+                        <span>🏷️ แท็กของการ์ดใบนี้:</span>
+                        <button onclick="showTagEditorInPlay()" style="background:#f1f5f9; border:none; padding:4px 8px; border-radius:5px; cursor:pointer; font-size:11px; color:#6366f1;">➕ แก้ไขแท็ก</button>
                     </div>
-                    <div id="currentCardTags">${currentTagHTML || '<small style="color:#cbd5e1;">?????????</small>'}</div>
+                    <div id="currentCardTags">${currentTagHTML || '<small style="color:#cbd5e1;">ไม่มีแท็ก</small>'}</div>
                     <div id="tagEditorArea" style="display:none; margin-top:10px; border-top:1px solid #f1f5f9; padding-top:10px;">
                         <div style="display:flex; flex-wrap:wrap; gap:5px;">
                             ${tags.map(t => `<div onclick="toggleTagOnCurrentCard('${t.name}')" style="cursor:pointer; font-size:11px; padding:4px 10px; border-radius:12px; border:2px solid ${t.color}; color:${t.color}; font-weight:bold;">${t.name}</div>`).join("")}
@@ -2024,41 +1930,41 @@
 
                 <div style="background:#f8fafc; padding:10px 12px; border-radius:12px; margin-bottom:10px; font-size:12px; color:#475569;">
                     <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:center;">
-                        <span style="font-weight:bold;">?? ?????????</span>
+                        <span style="font-weight:bold;">🔊 ภาษาเสียง</span>
                         <label style="display:flex; align-items:center; gap:4px;">
-                            ????:
+                            หน้า:
                             <select id="ttsLangFrontSelect" onchange="onTtsLangFrontChange(this.value)" style="padding:4px 8px; border-radius:6px; border:1px solid #cbd5e1;">
-                                <option value="auto" ${ttsLangFront === "auto" ? "selected" : ""}>????????? (??????????)</option>
-                                <option value="th" ${ttsLangFront === "th" ? "selected" : ""}>???</option>
+                                <option value="auto" ${ttsLangFront === "auto" ? "selected" : ""}>อัตโนมัติ (ตามข้อความ)</option>
+                                <option value="th" ${ttsLangFront === "th" ? "selected" : ""}>ไทย</option>
                                 <option value="en" ${ttsLangFront === "en" ? "selected" : ""}>English</option>
-                                <option value="ja" ${ttsLangFront === "ja" ? "selected" : ""}>???</option>
+                                <option value="ja" ${ttsLangFront === "ja" ? "selected" : ""}>日本語</option>
                             </select>
                         </label>
                         <label style="display:flex; align-items:center; gap:4px;">
-                            ???? (?????):
+                            หลัง (คำแปล):
                             <select id="ttsLangBackSelect" onchange="onTtsLangBackChange(this.value)" style="padding:4px 8px; border-radius:6px; border:1px solid #cbd5e1;">
-                                <option value="th" ${ttsLangBack === "th" ? "selected" : ""}>???</option>
+                                <option value="th" ${ttsLangBack === "th" ? "selected" : ""}>ไทย</option>
                                 <option value="en" ${ttsLangBack === "en" ? "selected" : ""}>English</option>
-                                <option value="ja" ${ttsLangBack === "ja" ? "selected" : ""}>???</option>
+                                <option value="ja" ${ttsLangBack === "ja" ? "selected" : ""}>日本語</option>
                             </select>
                         </label>
                     </div>
                 </div>
 
                 <div id="flashcardDisplay" style="position:relative; font-size:32px; font-weight:bold; min-height:180px; display:flex; align-items:center; justify-content:center; background:white; border-radius:25px; box-shadow:0 10px 30px rgba(0,0,0,0.1); margin-bottom:25px; padding:20px 50px 20px 20px;">
-                    <button type="button" onclick="speakCurrentCardText()" title="????????????" style="position:absolute; top:12px; right:12px; width:44px; height:44px; border:none; border-radius:50%; background:#eef2ff; color:#6366f1; font-size:22px; cursor:pointer; box-shadow:0 2px 8px rgba(99,102,241,0.25); z-index:2;">??</button>
-                    <div id="flashcardText" style="text-align:center; word-break:break-word; width:100%;">${formatMarkContent(c.front)}</div>
+                    <button type="button" onclick="speakCurrentCardText()" title="อ่านออกเสียง" style="position:absolute; top:12px; right:12px; width:44px; height:44px; border:none; border-radius:50%; background:#eef2ff; color:#6366f1; font-size:22px; cursor:pointer; box-shadow:0 2px 8px rgba(99,102,241,0.25); z-index:2;">🔊</button>
+                    <div id="flashcardText" style="text-align:center; word-break:break-word; width:100%;">${c.front}</div>
                 </div>
 
                 ${autoControlsHtml}
 
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-                    <button id="revealBtn" onclick="toggleAnswer()" style="grid-column: span 2; background:#6366f1; color:white; padding:15px; border-radius:12px; border:none; font-weight:bold; font-size:18px; cursor:pointer;">??? ??????</button>
-                    <button onclick="prevCard()" style="background:#f1f5f9; color:#64748b; padding:12px; border-radius:12px; border:none; font-weight:bold; cursor:pointer;" ${currentIdx === 0 ? 'disabled' : ''}>?? ????????</button>
-                    <button onclick="nextCard()" style="background:#10b981; color:white; padding:12px; border-radius:12px; border:none; font-weight:bold; cursor:pointer;">??????? ??</button>
-                    <button onclick="skipCard()" style="grid-column: span 2; background:none; color:#94a3b8; border:none; padding:10px; font-size:14px; cursor:pointer;">?? ??????????????????</button>
+                    <button id="revealBtn" onclick="toggleAnswer()" style="grid-column: span 2; background:#6366f1; color:white; padding:15px; border-radius:12px; border:none; font-weight:bold; font-size:18px; cursor:pointer;">👁️ ดูเฉลย</button>
+                    <button onclick="prevCard()" style="background:#f1f5f9; color:#64748b; padding:12px; border-radius:12px; border:none; font-weight:bold; cursor:pointer;" ${currentIdx === 0 ? 'disabled' : ''}>⬅️ ย้อนกลับ</button>
+                    <button onclick="nextCard()" style="background:#10b981; color:white; padding:12px; border-radius:12px; border:none; font-weight:bold; cursor:pointer;">ใบถัดไป ➡️</button>
+                    <button onclick="skipCard()" style="grid-column: span 2; background:none; color:#94a3b8; border:none; padding:10px; font-size:14px; cursor:pointer;">⏭️ ข้ามคำนี้ไปท้ายสุด</button>
                 </div>
-                <button onclick="finishPlaySession()" style="margin-top:20px; background:none; color:#cbd5e1; border:none; cursor:pointer; text-decoration:underline; font-size:12px;">?????????</button>
+                <button onclick="finishPlaySession()" style="margin-top:20px; background:none; color:#cbd5e1; border:none; cursor:pointer; text-decoration:underline; font-size:12px;">เลิกเรียน</button>
             </div>
         `;
         document.getElementById("list").innerHTML = html;
@@ -2102,7 +2008,7 @@
     function findRealCardRefFromSessionCard(card) {
         if (!card) return null;
 
-        // ???????????????????????????????? search/calendar
+        // เคสที่การ์ดมีตำแหน่งอ้างอิงมาจาก search/calendar
         if (Number.isInteger(card.fIdx) && Number.isInteger(card.cIdx) && folders[card.fIdx]?.cards?.[card.cIdx]) {
             return folders[card.fIdx].cards[card.cIdx];
         }
@@ -2110,7 +2016,7 @@
             return folders[card.folderIndex].cards[card.cardIndex];
         }
 
-        // fallback: ????? front + back (?????????????????????????????????? index)
+        // fallback: หาโดย front + back (รองรับกรณีเริ่มจากหน้าหลักที่ไม่มี index)
         for (let i = 0; i < folders.length; i++) {
             let j = folders[i].cards.findIndex(c => c.front === card.front && c.back === card.back);
             if (j > -1) return folders[i].cards[j];
@@ -2132,7 +2038,7 @@
             card.due = Date.now() + (interval * 86400000); 
         }
 
-        // ?????: ???????????????????? folders ????????????????????????????
+        // สำคัญ: เขียนกลับการ์ดจริงใน folders เพื่อให้บันทึกได้จริงทุกเมนู
         let realCard = findRealCardRefFromSessionCard(card);
         if (realCard) {
             realCard.tag = [...card.tag];
@@ -2147,7 +2053,7 @@
             let tObj = tags.find(tg => tg.name === tn);
             return `<span style="background:${tObj ? tObj.color : '#eee'}; color:white; padding:2px 8px; border-radius:10px; font-size:12px; margin-right:5px;">${tn}</span>`;
         }).join("");
-        document.getElementById("currentCardTags").innerHTML = html || '<small style="color:#cbd5e1;">?????????</small>';
+        document.getElementById("currentCardTags").innerHTML = html || '<small style="color:#cbd5e1;">ไม่มีแท็ก</small>';
     }
 
     // 9. AUTOMATION & LOGIC
@@ -2159,7 +2065,7 @@
         let dueDate = new Date(card.due);
         dueDate.setHours(0, 0, 0, 0); 
 
-        // ????????????????????????????????
+        // ห้ามเปลี่ยนแท็กถ้าทบทวนก่อนกำหนด
         if (dueDate > today) {
             return; 
         }
@@ -2180,7 +2086,7 @@
                     let newConfig = tags.find(t => t.name === targetTag);
                     let days = newConfig ? newConfig.interval : 1;
                     
-                    card.due = today.getTime() + (days * 86400000); // ????????????????????????
+                    card.due = today.getTime() + (days * 86400000); // นับล่วงหน้าจากวันนี้เสมอ
                     changed = true;
                 }
             }
@@ -2189,7 +2095,7 @@
         if(changed && realCard) { realCard.tag = card.tag; realCard.due = card.due; }
     }
 
-    // ???????????????????????????????????????????????????????????????
+    // ระบบกวาดล้างการ์ดที่ตกค้างในอดีตให้อัปเดตมาที่ปัจจุบันอัตโนมัติ
     function processOverdueCards() {
         let today = new Date();
         today.setHours(0, 0, 0, 0); 
@@ -2233,14 +2139,14 @@
 
     // 10. CALENDAR 
     function renderCalendar() {
-        processOverdueCards(); // ??????????????????????????????????????????
+        processOverdueCards(); // สั่งกวาดล้างจุดตกค้างทุกครั้งที่เปิดปฏิทิน
         
         let year = calDate.getFullYear(); let month = calDate.getMonth();
         let firstDay = new Date(year, month, 1).getDay(); let daysInMonth = new Date(year, month+1, 0).getDate();
-        let monthNames = ["??????","??????????","??????","??????","???????","????????","???????","???????","???????","??????","?????????","???????"];
+        let monthNames = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
         document.getElementById("monthTitle").innerText = `${monthNames[month]} ${year + 543}`;
         
-        let html = ["??","?","?","?","??","?","?"].map(d=>`<div class="dayHeader">${d}</div>`).join("");
+        let html = ["อา","จ","อ","พ","พฤ","ศ","ส"].map(d=>`<div class="dayHeader">${d}</div>`).join("");
         for(let i=0; i<firstDay; i++) html+=`<div></div>`;
         
         let today = new Date(); 
@@ -2258,7 +2164,7 @@
                 });
             });
 
-            // ??????????????? "??????"
+            // ตีกรอบไฮไลท์ให้ "วันนี้"
             let isToday = (d === today.getDate() && month === today.getMonth() && year === today.getFullYear());
             let todayStyle = isToday ? 'border: 2px solid #3b82f6; background-color: #eff6ff;' : '';
             
@@ -2274,24 +2180,24 @@
 
     
 
-    // ??????????????????????????????????? ????????????????????
+    // เก็บวันที่และรายการการ์ดที่เลือกไว้ เพื่อเอาไปเริ่มทบทวน
     let selectedReviewDate = "";
     let selectedDateCards = [];
 
     function showDayDetails(y, m, d) {
         const targetDate = new Date(y, m, d).toDateString();
-        document.getElementById("modalDateTitle").innerText = `?? ???????????? ${d}/${m+1}/${y}`;
+        document.getElementById("modalDateTitle").innerText = `📅 รายการวันที่ ${d}/${m+1}/${y}`;
         showDateCards(targetDate);
     }
 
-    // ?????????????????????????????????????????????
+    // ฟังก์ชันนี้จะทำงานตอนคุณคลิกที่วันที่ในปฏิทิน
     function showDateCards(targetDate) {
         let found = false;
         let listHtml = "";
         let availableTags = new Set();
         selectedDateCards = [];
 
-        // ?????????????????????????????
+        // ค้นหาการ์ดที่ตรงกับวันที่คลิก
         folders.forEach((folder, fIndex) => {
             folder.cards.forEach((card, cIndex) => {
                 if (card.due && new Date(card.due).toDateString() === targetDate) {
@@ -2299,8 +2205,8 @@
                     selectedDateCards.push({ folderIndex: fIndex, cardIndex: cIndex, card });
                     listHtml += `
                         <div style="padding:12px; border-bottom:1px solid #eee; text-align:left;">
-                            <strong style="color:#1e293b;">${formatMarkContent(card.front)}</strong>
-                            <div style="font-size:13px; color:#64748b;">?? ${folder.name} ${(card.tag && card.tag.length > 0) ? '??? ' + card.tag.join(', ') : ''}</div>
+                            <strong style="color:#1e293b;">${card.front}</strong>
+                            <div style="font-size:13px; color:#64748b;">📂 ${folder.name} ${(card.tag && card.tag.length > 0) ? '🏷️ ' + card.tag.join(', ') : ''}</div>
                         </div>`;
 
                     if (card.tag && card.tag.length > 0) {
@@ -2310,24 +2216,24 @@
             });
         });
 
-        // ?????????????????
-        document.getElementById("modalCardList").innerHTML = found ? listHtml : "<p style='text-align:center; color:gray;'>????????????????????????</p>";
+        // แสดงรายการคำศัพท์
+        document.getElementById("modalCardList").innerHTML = found ? listHtml : "<p style='text-align:center; color:gray;'>ไม่มีรายการทบทวนในวันนี้</p>";
 
-        // ?? ??????????????????????????????????
+        // 🌟 สั่งเปิดปุ่มสีเขียวและดึงแท็กมาใส่
         if (found) {
             selectedReviewDate = targetDate;
-            let tagOptions = `<option value="all">???????</option><option value="no_tag">?????????</option>`;
+            let tagOptions = `<option value="all">ทุกแท็ก</option><option value="no_tag">ไม่มีแท็ก</option>`;
             Array.from(availableTags).sort((a,b) => a.localeCompare(b, 'th')).forEach(t => {
                 tagOptions += `<option value="${t}">${t}</option>`;
             });
 
             document.getElementById("calReviewTagFilter").innerHTML = tagOptions;
-            document.getElementById("calendarReviewOptions").style.display = "block"; // ??????????????
+            document.getElementById("calendarReviewOptions").style.display = "block"; // โชว์แผงสีเขียว
         } else {
-            document.getElementById("calendarReviewOptions").style.display = "none"; // ????????????????????
+            document.getElementById("calendarReviewOptions").style.display = "none"; // ซ่อนแผงถ้าไม่มีการ์ด
         }
 
-        // ???????????
+        // เปิดป๊อปอัป
         document.getElementById("calendarModal").style.display = "flex";
     }
 
@@ -2335,8 +2241,8 @@
     function nextMonth(){ calDate.setMonth(calDate.getMonth()+1); renderCalendar(); }
     function prevMonth(){ calDate.setMonth(calDate.getMonth()-1); renderCalendar(); }
 
-    // ===== Calendar Review (??? Modal) =====
-    // ????????????????????????????? "?? ???????????????????"
+    // ===== Calendar Review (จาก Modal) =====
+    // ฟังก์ชันนี้จะทำงานเมื่อกดปุ่ม "▶️ เริ่มเรียนของวันนี้"
     function startCalendarReview() {
         if (!selectedReviewDate) return;
 
@@ -2344,7 +2250,7 @@
         let limitValue = document.getElementById("calReviewLimit")?.value || "all";
         let cardsToReview = [];
 
-        // ??????????????????? popup ?????? ???????????? mismatch ???????????????????
+        // ใช้รายการที่ค้นพบใน popup โดยตรง เพื่อลดโอกาส mismatch ตอนกดปุ่มเริ่มเรียน
         selectedDateCards.forEach((entry) => {
             let card = entry.card;
             let cardTags = Array.isArray(card.tag) ? card.tag : (Array.isArray(card.tags) ? card.tags : []);
@@ -2357,21 +2263,21 @@
         });
 
         if (cardsToReview.length === 0) {
-            alert("??????????????????????????????????????????????");
+            alert("ไม่มีการ์ดที่ตรงกับเงื่อนไขแท็กที่คุณเลือกครับ");
             return;
         }
 
-        // ??????????????????
+        // สุ่มและตัดจำนวนไพ่
         cardsToReview.sort(() => Math.random() - 0.5);
         if (limitValue !== "all") {
             let n = parseInt(limitValue, 10);
             if (!Number.isNaN(n)) cardsToReview = cardsToReview.slice(0, n);
         }
 
-        // ?????????????
+        // ปิดหน้าปฏิทิน
         document.getElementById("calendarModal").style.display = "none";
 
-        // ????????????????? (????????????????????? Play ??????????????)
+        // นำการ์ดไปเล่นจริง (ใช้รูปแบบเดียวกับโหมด Play ของโปรเจกต์นี้)
         let deck = cardsToReview.map(x => x.card);
         let tempDeck = JSON.parse(JSON.stringify(deck));
         if (shuffleMode) tempDeck.sort(() => Math.random() - 0.5);
@@ -2383,10 +2289,10 @@
     }
 
     // ==========================================
-    // ?? ??????????????? (Manual Backup / Restore)
+    // 💾 ระบบสำรองข้อมูล (Manual Backup / Restore)
     // ==========================================
 
-    // 1. ??????????????????????? (??????????????????????????????????????????????)
+    // 1. เปิดหน้าต่างตั้งชื่อเซฟ (ดึงวันที่ปัจจุบันมาตั้งเป็นชื่อเริ่มต้นให้ด้วย)
     function openSaveModal() {
         let today = new Date();
         let dateStr = `${today.getFullYear()}${(today.getMonth()+1).toString().padStart(2,'0')}${today.getDate().toString().padStart(2,'0')}`;
@@ -2394,29 +2300,29 @@
         document.getElementById("saveModal").style.display = "flex";
     }
 
-    // 2. ??????????????
+    // 2. ปิดหน้าต่างเซฟ
     function closeSaveModal() {
         document.getElementById("saveModal").style.display = "none";
     }
 
-    // 3. ?????????????????????????????????????? (Save)
+    // 3. เริ่มบีบอัดข้อมูลและสร้างไฟล์ดาวน์โหลด (Save)
     function executeSaveFile() {
         let fileName = document.getElementById("saveFileName").value.trim();
-        if (!fileName) return alert("????????????????????????");
+        if (!fileName) return alert("กรุณาตั้งชื่อไฟล์เซฟครับ");
         
-        // ????????????????????????????????????????
+        // รวบรวมข้อมูลโฟลเดอร์และแท็กทั้งหมดของคุณ
         let saveData = {
             folders: folders,
             tags: tags,
             lastModified: Date.now()
         };
 
-        // ????????????????????? JSON
+        // แปลงข้อมูลเป็นข้อความ JSON
         let dataStr = JSON.stringify(saveData, null, 2);
         let blob = new Blob([dataStr], { type: "application/json" });
         let url = URL.createObjectURL(blob);
 
-        // ??????????????????????????????????????????????????
+        // แอบสร้างปุ่มและสั่งกดดาวน์โหลดเข้าเครื่องอัตโนมัติ
         let a = document.createElement("a");
         a.href = url;
         a.download = fileName.endsWith(".json") ? fileName : fileName + ".json";
@@ -2426,17 +2332,17 @@
         URL.revokeObjectURL(url);
 
         closeSaveModal();
-        alert(`? ??????????????????!\n???????? "${a.download}" ???????????????????? Download ??????????????`);
+        alert(`✅ สร้างไฟล์เซฟสำเร็จ!\nไฟล์ชื่อ "${a.download}" ถูกเก็บไว้ในโฟลเดอร์ Download ของคุณแล้วครับ`);
     }
 
-    // 4. ???????????????????????????? (Load)
+    // 4. สั่งเปิดหน้าต่างให้เลือกไฟล์ (Load)
     function triggerLoadSave() {
-        if(confirm("?? ???????: ?????????????????? ??????????????????????????????? Cloud ?????????????!\n\n????????????????????????????????????????????????")) {
+        if(confirm("⚠️ คำเตือน: การโหลดไฟล์เซฟเก่า จะลบทับข้อมูลปัจจุบันในแอปและบน Cloud ของคุณทั้งหมด!\n\nคุณแน่ใจหรือไม่ว่าต้องการกู้คืนข้อมูลจากไฟล์เซฟ?")) {
             document.getElementById("loadSaveInput").click();
         }
     }
 
-    // 5. ????????????????????? ???????????????
+    // 5. อ่านไฟล์เซฟที่เลือกมา และเขียนทับระบบ
     function handleLoadSave(event) {
         let file = event.target.files[0];
         if (!file) return;
@@ -2444,40 +2350,40 @@
         let reader = new FileReader();
         reader.onload = function(e) {
             try {
-                // ????????????????????????
+                // แกะกล่องข้อมูลจากไฟล์เซฟ
                 let loadedData = JSON.parse(e.target.result);
                 
-                // ???????????????????????????????????????????? ???
+                // เช็คว่าไฟล์ที่เอามาใส่ใช่ไฟล์ของเว็บเราจริงๆ ไหม
                 if (loadedData.folders !== undefined && loadedData.tags !== undefined) {
                     folders = loadedData.folders;
                     tags = loadedData.tags;
                     
-                    // ??????????? Cloud ???????? Cloud ????????????????????????????
+                    // บังคับเซฟลง Cloud เพื่อให้ Cloud ถูกทับด้วยข้อมูลจากเซฟตัวนี้
                     save(); 
-                    render(); // ?????????????
+                    render(); // วาดหน้าจอใหม่
                     
-                    alert("? ????????????????????????????????!\n?????????????????????????????????????? Cloud ?????????????");
+                    alert("✅ โหลดไฟล์เซฟและกู้คืนข้อมูลสำเร็จ!\nระบบได้อัปโหลดไฟล์เซฟนี้ขึ้นไปแทนที่บน Cloud เรียบร้อยแล้ว");
                 } else {
-                    alert("? ????????????????????????????! ?????????????????????????????????????");
+                    alert("❌ ไฟล์เซฟไม่ถูกต้องหรือเสียหาย! กรุณาใช้ไฟล์ที่โหลดจากระบบนี้เท่านั้น");
                 }
             } catch (err) {
-                alert("? ???????????????????????????!\n" + err.message);
+                alert("❌ เกิดข้อผิดพลาดในการอ่านไฟล์!\n" + err.message);
             }
-            // ????????????????????????????????????????????????
+            // ล้างค่าเพื่อให้สามารถกดโหลดไฟล์เดิมซ้ำได้ในอนาคต
             document.getElementById("loadSaveInput").value = "";
         };
         reader.readAsText(file);
     }
 
     window.onload = () => {
-    // 1. ???????????????????????????????????????? ????????????!
-    // 2. ???????????????????????????????????????? "????" ???? "??????????" 
+    // 1. อะไรที่เกี่ยวกับการดึงข้อมูลจากฐานข้อมูล ลบทิ้งให้หมด!
+    // 2. เหลือไว้เฉพาะฟังก์ชันที่ช่วยจัดการเรื่อง "เวลา" หรือ "วันหมดอายุ" 
     if (typeof processOverdueCards === "function") {
         processOverdueCards(); 
     }
     
-    // ????????: ?????????? loadData() ???? render() ????????? 
-    // ????????? onAuthStateChanged (??????????????????????) ????????????????????
+    // หมายเหตุ: ไม่ต้องใส่ loadData() หรือ render() ในนี้แล้ว 
+    // เพราะระบบ onAuthStateChanged (ก้อนใหม่ที่คุณเพิ่งวาง) จะเป็นคนคุมคิวให้เอง
 }   ;
 </script>
 </body>
